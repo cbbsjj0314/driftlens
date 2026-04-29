@@ -2,6 +2,7 @@
 __pycache__/
 .pytest_cache/
 *.py[oc]
+*.py[cod]
 build/
 dist/
 wheels/
@@ -9,4 +10,14 @@ wheels/
 
 # Virtual environments
 .venv
+.venv/
 .uv-cache
+
+# Environment files
+.env
+
+# Tool caches
+.ruff_cache/
+
+# Local working docs
+docs/local/
