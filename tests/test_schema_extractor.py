@@ -17,3 +17,18 @@ def test_extract_schema_from_flat_steam_appdetails_fixture() -> None:
         "price": {"path": "price", "types": ["integer"], "nullable": False},
         "currency": {"path": "currency", "types": ["string"], "nullable": False},
     }
+
+
+def test_extract_schema_from_nested_steam_appdetails_fixture() -> None:
+    fixture_path = Path(__file__).parent / "fixtures" / "steam_appdetails_nested_v1.json"
+    data = json.loads(fixture_path.read_text())
+
+    schema = extract_schema(data)
+
+    assert schema["fields"] == [
+        {"path": "appid", "types": ["integer"], "nullable": False},
+        {"path": "name", "types": ["string"], "nullable": False},
+        {"path": "price", "types": ["object"], "nullable": False},
+        {"path": "price.currency", "types": ["string"], "nullable": False},
+        {"path": "price.final", "types": ["integer"], "nullable": False},
+    ]

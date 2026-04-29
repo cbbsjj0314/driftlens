@@ -1,0 +1,8 @@
+{
+  "name": "Example Game",
+  "appid": 123,
+  "price": {
+    "currency": "KRW",
+    "final": 12000
+  }
+}

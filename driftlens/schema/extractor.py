@@ -18,17 +18,27 @@ def infer_type(value: object) -> str:
     return "unknown"
 
 
-def extract_schema(data: dict) -> dict:
-    """Extract a deterministic schema description from a flat JSON object."""
+def _extract_fields(data: dict, parent_path: str = "") -> list[dict]:
     fields = []
     for key, value in data.items():
+        path = f"{parent_path}.{key}" if parent_path else key
         inferred_type = infer_type(value)
         fields.append(
             {
-                "path": key,
+                "path": path,
                 "types": [inferred_type],
                 "nullable": inferred_type == "null",
             }
         )
+        if isinstance(value, dict):
+            fields.extend(_extract_fields(value, path))
+
+    return fields
+
+
+def extract_schema(data: dict) -> dict:
+    """Extract a deterministic schema description from a JSON object."""
+    fields = _extract_fields(data)
+    fields.sort(key=lambda field: field["path"])
 
     return {"fields": fields}
