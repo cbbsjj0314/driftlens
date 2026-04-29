@@ -87,6 +87,19 @@ Use this layout:
 * Use sanitized fixtures.
 * Do not commit secrets or private runtime data.
 
+## Documentation Language
+
+- Write durable human-facing docs in Korean by default.
+- Write local working docs under `docs/local/` in Korean by default.
+- Keep Korean prose concise and direct.
+- Do not translate code-facing identifiers.
+- Preserve actual code notation for names such as objects, endpoints, routes, loaders, tables, views, CLI commands, filenames, modules, classes, functions, and config keys.
+- Examples:
+  - Use `endpoint`, `route`, `loader`, `table`, `view`, and `CLI` when referring to code concepts.
+  - Use `driftlens detect`, not a translated command name.
+  - Use `api_samples`, not a translated table name.
+- Agent-facing instruction files may use English when that improves tool compatibility.
+
 ## Tooling
 
 Use uv.
