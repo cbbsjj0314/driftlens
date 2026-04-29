@@ -1,4 +1,15 @@
+import json
+from pathlib import Path
+
 from driftlens.schema.diff import diff_schemas
+from driftlens.schema.extractor import extract_schema
+
+
+FIXTURE_DIR = Path(__file__).parent / "fixtures"
+
+
+def load_fixture(name: str) -> dict:
+    return json.loads((FIXTURE_DIR / name).read_text())
 
 
 def field(path: str, types: list[str], nullable: bool = False) -> dict:
@@ -105,5 +116,37 @@ def test_diff_schemas_sorts_results_deterministically() -> None:
             "path": "z_removed",
             "previous": field("z_removed", ["string"]),
             "current": None,
+        },
+    ]
+
+
+def test_diff_schemas_from_steam_appdetails_fixtures() -> None:
+    previous_schema = extract_schema(load_fixture("steam_appdetails_v1.json"))
+    current_schema = extract_schema(load_fixture("steam_appdetails_nested_v1.json"))
+
+    assert diff_schemas(previous_schema, current_schema) == [
+        {
+            "change_type": "field_removed",
+            "path": "currency",
+            "previous": field("currency", ["string"]),
+            "current": None,
+        },
+        {
+            "change_type": "type_changed",
+            "path": "price",
+            "previous": ["integer"],
+            "current": ["object"],
+        },
+        {
+            "change_type": "field_added",
+            "path": "price.currency",
+            "previous": None,
+            "current": field("price.currency", ["string"]),
+        },
+        {
+            "change_type": "field_added",
+            "path": "price.final",
+            "previous": None,
+            "current": field("price.final", ["integer"]),
         },
     ]
