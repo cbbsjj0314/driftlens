@@ -1,0 +1,29 @@
+{
+  "appid": 123,
+  "genres": [
+    {
+      "id": 1,
+      "description": "Action"
+    },
+    {
+      "id": 2,
+      "description": "Adventure"
+    }
+  ],
+  "tags": [
+    "single-player",
+    "controller"
+  ],
+  "screenshots": [],
+  "metadata": {
+    "supported_languages": [
+      "English",
+      "Korean"
+    ]
+  },
+  "mixed_values": [
+    1,
+    "two",
+    null
+  ]
+}

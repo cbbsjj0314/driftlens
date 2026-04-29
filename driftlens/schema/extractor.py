@@ -32,13 +32,63 @@ def _extract_fields(data: dict, parent_path: str = "") -> list[dict]:
         )
         if isinstance(value, dict):
             fields.extend(_extract_fields(value, path))
+        if isinstance(value, list):
+            fields.extend(_extract_array_item_fields(value, path))
 
     return fields
 
 
+def _extract_array_item_fields(items: list, array_path: str) -> list[dict]:
+    fields = []
+    item_path = f"{array_path}[]"
+
+    for item in items:
+        inferred_type = infer_type(item)
+        fields.append(
+            {
+                "path": item_path,
+                "types": [inferred_type],
+                "nullable": inferred_type == "null",
+            }
+        )
+        if isinstance(item, dict):
+            fields.extend(_extract_fields(item, item_path))
+
+    return fields
+
+
+def _merge_fields(fields: list[dict]) -> list[dict]:
+    fields_by_path = {}
+    for field in fields:
+        path = field["path"]
+        if path not in fields_by_path:
+            fields_by_path[path] = {
+                "path": path,
+                "types": set(),
+                "nullable": False,
+            }
+
+        fields_by_path[path]["types"].update(field["types"])
+        fields_by_path[path]["nullable"] = (
+            fields_by_path[path]["nullable"] or field["nullable"]
+        )
+
+    merged_fields = []
+    for field in fields_by_path.values():
+        merged_fields.append(
+            {
+                "path": field["path"],
+                "types": sorted(field["types"]),
+                "nullable": field["nullable"],
+            }
+        )
+
+    return merged_fields
+
+
 def extract_schema(data: dict) -> dict:
     """Extract a deterministic schema description from a JSON object."""
-    fields = _extract_fields(data)
+    fields = _merge_fields(_extract_fields(data))
     fields.sort(key=lambda field: field["path"])
 
     return {"fields": fields}
