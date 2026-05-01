@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "Local-first schema drift monitor for JSON ingestion pipelines."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "typer>=0.20.0",
+]
+
+[project.scripts]
+driftlens = "driftlens.cli:app"
 
 [dependency-groups]
 dev = [
@@ -14,3 +19,6 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.uv]
+package = true
