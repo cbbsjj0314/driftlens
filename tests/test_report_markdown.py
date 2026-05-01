@@ -13,6 +13,20 @@ def analysis(**overrides) -> dict:
         "severity_counts": {"low": 1, "high": 1, "medium": 1},
         "overall_severity": "high",
         "operator_summary": "Review parser behavior for schema drift.",
+        "representative_changes": [
+            {
+                "severity": "high",
+                "change_type": "type_changed",
+                "path": "required_age",
+                "previous_types": ["string"],
+                "current_types": ["integer"],
+            },
+            {
+                "severity": "low",
+                "change_type": "field_added",
+                "path": "ratings.agcom.rating",
+            },
+        ],
         "impacts": [
             "Parser assumptions may need review.",
             "Downstream mapping may need review.",
@@ -45,6 +59,7 @@ def test_render_markdown_report_includes_title_and_sections_in_order() -> None:
         "## Summary",
         "## Schema Versions",
         "## Severity",
+        "## Representative Changes",
         "## Impacts",
         "## Normalization Suggestions",
         "## Test Case Suggestions",
@@ -107,10 +122,51 @@ def test_render_markdown_report_renders_list_fields_as_bullets_in_input_order() 
     assert "- Add parser test." in report
 
 
+def test_render_markdown_report_renders_representative_changes() -> None:
+    report = render_markdown_report(
+        analysis(
+            representative_changes=[
+                {
+                    "severity": "high",
+                    "change_type": "field_removed",
+                    "path": "price_overview",
+                },
+                {
+                    "severity": "low",
+                    "change_type": "field_added",
+                    "path": "ratings.agcom.rating",
+                },
+            ]
+        )
+    )
+
+    assert "- high field_removed: price_overview" in report
+    assert "- low field_added: ratings.agcom.rating" in report
+
+
+def test_render_markdown_report_renders_type_changed_types() -> None:
+    report = render_markdown_report(
+        analysis(
+            representative_changes=[
+                {
+                    "severity": "high",
+                    "change_type": "type_changed",
+                    "path": "required_age",
+                    "previous_types": ["string"],
+                    "current_types": ["integer"],
+                }
+            ]
+        )
+    )
+
+    assert "- high type_changed: required_age (string -> integer)" in report
+
+
 def test_render_markdown_report_uses_fallbacks_for_empty_summary_and_lists() -> None:
     report = render_markdown_report(
         analysis(
             operator_summary="",
+            representative_changes=[],
             impacts=[],
             normalization_suggestions=[],
             test_case_suggestions=[],
@@ -118,9 +174,19 @@ def test_render_markdown_report_uses_fallbacks_for_empty_summary_and_lists() -> 
     )
 
     assert "No operator summary provided." in report
+    assert "- No representative changes provided." in report
     assert "- No impacts provided." in report
     assert "- No normalization suggestions provided." in report
     assert "- No test case suggestions provided." in report
+
+
+def test_render_markdown_report_uses_representative_changes_fallback_when_missing() -> None:
+    input_analysis = analysis()
+    del input_analysis["representative_changes"]
+
+    report = render_markdown_report(input_analysis)
+
+    assert "- No representative changes provided." in report
 
 
 def test_render_markdown_report_is_deterministic_for_same_input() -> None:
@@ -147,6 +213,7 @@ def test_render_markdown_report_accepts_mock_llm_provider_output() -> None:
         classified_changes=[
             {
                 "change_type": "field_added",
+                "path": "name",
                 "severity": "low",
             }
         ],

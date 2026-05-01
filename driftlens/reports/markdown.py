@@ -15,6 +15,26 @@ def _operator_summary(summary: str) -> str:
     return "No operator summary provided."
 
 
+def _format_representative_change(change: dict) -> str:
+    summary = f"{change['severity']} {change['change_type']}: {change['path']}"
+
+    previous_types = change.get("previous_types")
+    current_types = change.get("current_types")
+    if isinstance(previous_types, list) and isinstance(current_types, list):
+        previous = ", ".join(str(value) for value in previous_types)
+        current = ", ".join(str(value) for value in current_types)
+        summary = f"{summary} ({previous} -> {current})"
+
+    return f"- {summary}"
+
+
+def _format_representative_changes(changes: list) -> list[str]:
+    if not changes:
+        return ["- No representative changes provided."]
+
+    return [_format_representative_change(change) for change in changes]
+
+
 def render_markdown_report(analysis: dict) -> str:
     """Render an operator-facing Markdown report from an LLM analysis dict."""
     severity_counts = analysis["severity_counts"]
@@ -43,6 +63,10 @@ def render_markdown_report(analysis: dict) -> str:
 
     lines.extend(
         [
+            "",
+            "## Representative Changes",
+            "",
+            *_format_representative_changes(analysis.get("representative_changes")),
             "",
             "## Impacts",
             "",

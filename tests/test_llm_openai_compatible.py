@@ -93,6 +93,7 @@ def test_openai_compatible_provider_returns_analysis_dict_with_required_keys() -
         "severity_counts",
         "overall_severity",
         "operator_summary",
+        "representative_changes",
         "impacts",
         "normalization_suggestions",
         "test_case_suggestions",
@@ -139,6 +140,13 @@ def test_openai_compatible_provider_keeps_deterministic_fields_from_input() -> N
             change_count=99,
             severity_counts={"high": 0, "medium": 0, "low": 0},
             overall_severity="none",
+            representative_changes=[
+                {
+                    "severity": "low",
+                    "change_type": "field_added",
+                    "path": "fake",
+                }
+            ],
         ),
     )
 
@@ -148,6 +156,15 @@ def test_openai_compatible_provider_keeps_deterministic_fields_from_input() -> N
     assert analysis["change_count"] == 1
     assert analysis["severity_counts"] == {"high": 1, "medium": 0, "low": 0}
     assert analysis["overall_severity"] == "high"
+    assert analysis["representative_changes"] == [
+        {
+            "severity": "high",
+            "change_type": "type_changed",
+            "path": "price",
+            "previous_types": ["integer"],
+            "current_types": ["object"],
+        }
+    ]
 
 
 def test_openai_compatible_provider_returns_high_overall_severity() -> None:
@@ -214,6 +231,7 @@ def test_openai_compatible_provider_returns_none_overall_severity() -> None:
     assert analysis["change_count"] == 0
     assert analysis["overall_severity"] == "none"
     assert analysis["severity_counts"] == {"high": 0, "medium": 0, "low": 0}
+    assert analysis["representative_changes"] == []
 
 
 def test_openai_compatible_provider_rejects_unknown_severity() -> None:
@@ -256,6 +274,37 @@ def test_openai_compatible_provider_falls_back_for_missing_or_wrong_field_types(
     assert analysis["impacts"] == []
     assert analysis["normalization_suggestions"] == []
     assert analysis["test_case_suggestions"] == []
+
+
+def test_openai_compatible_provider_ignores_llm_representative_changes() -> None:
+    analysis = analyze(
+        [
+            {
+                "change_type": "field_removed",
+                "path": "price_overview",
+                "previous": field("price_overview", ["object"]),
+                "current": None,
+                "severity": "high",
+            }
+        ],
+        fake_llm_content(
+            representative_changes=[
+                {
+                    "severity": "low",
+                    "change_type": "field_added",
+                    "path": "llm_supplied_path",
+                }
+            ]
+        ),
+    )
+
+    assert analysis["representative_changes"] == [
+        {
+            "severity": "high",
+            "change_type": "field_removed",
+            "path": "price_overview",
+        }
+    ]
 
 
 def test_openai_compatible_provider_does_not_mutate_classified_changes() -> None:
