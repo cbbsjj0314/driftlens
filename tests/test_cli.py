@@ -64,6 +64,40 @@ def test_detect_command_writes_artifacts_and_prints_json_summary(tmp_path) -> No
     assert read_json_artifact(out_dir / "summary.json") == summary
 
 
+def test_detect_command_with_report_writes_mock_analysis_and_markdown_report(
+    tmp_path,
+) -> None:
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+    out_dir = tmp_path / "artifacts"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(out_dir),
+            "--report",
+        ],
+    )
+
+    assert result.exit_code == 0
+    summary = json.loads(result.stdout)
+
+    assert summary["artifacts"]["llm_analysis"] == "llm/analysis.json"
+    assert summary["artifacts"]["markdown_report"] == "reports/schema_drift.md"
+
+    analysis = read_json_artifact(out_dir / "llm/analysis.json")
+    report = (out_dir / "reports/schema_drift.md").read_text(encoding="utf-8")
+
+    assert analysis["provider"] == "mock"
+    assert "# DriftLens Schema Drift Report" in report
+    assert read_json_artifact(out_dir / "summary.json") == summary
+
+
 def test_detect_command_fails_for_missing_input_file(tmp_path) -> None:
     runner = CliRunner()
     missing_json = tmp_path / "missing.json"

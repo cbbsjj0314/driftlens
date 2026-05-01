@@ -3,7 +3,11 @@ import pytest
 from driftlens.schema.diff import diff_schemas
 from driftlens.schema.extractor import extract_schema
 from driftlens.schema.severity import classify_changes
-from driftlens.storage.artifacts import read_json_artifact, write_json_artifact
+from driftlens.storage.artifacts import (
+    read_json_artifact,
+    write_json_artifact,
+    write_text_artifact,
+)
 
 
 def test_write_json_artifact_can_be_read_back(tmp_path) -> None:
@@ -52,6 +56,36 @@ def test_write_json_artifact_allows_dotdot_in_filename_part(tmp_path) -> None:
     artifact_path = write_json_artifact(tmp_path, "samples/raw..json", {"ok": True})
 
     assert read_json_artifact(artifact_path) == {"ok": True}
+
+
+def test_write_text_artifact_writes_utf8_text_with_trailing_newline(tmp_path) -> None:
+    artifact_path = write_text_artifact(
+        tmp_path,
+        "reports/schema_drift.md",
+        "# 리포트",
+    )
+
+    assert artifact_path.read_text(encoding="utf-8") == "# 리포트\n"
+
+
+def test_write_text_artifact_does_not_duplicate_trailing_newline(tmp_path) -> None:
+    artifact_path = write_text_artifact(
+        tmp_path,
+        "reports/schema_drift.md",
+        "# Report\n",
+    )
+
+    assert artifact_path.read_text(encoding="utf-8") == "# Report\n"
+
+
+def test_write_text_artifact_rejects_relative_path_traversal(tmp_path) -> None:
+    with pytest.raises(ValueError):
+        write_text_artifact(tmp_path, "../outside.md", "# Report")
+
+
+def test_write_text_artifact_rejects_absolute_path(tmp_path) -> None:
+    with pytest.raises(ValueError):
+        write_text_artifact(tmp_path, str(tmp_path / "outside.md"), "# Report")
 
 
 def test_write_json_artifact_stores_observed_schema_dict(tmp_path) -> None:
