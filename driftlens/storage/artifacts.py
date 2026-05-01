@@ -36,6 +36,17 @@ def write_json_artifact(base_dir: Path, relative_path: str, data: dict | list) -
     return artifact_path
 
 
+def write_text_artifact(base_dir: Path, relative_path: str, text: str) -> Path:
+    """Write a UTF-8 text artifact under base_dir and return its path."""
+    artifact_path = _resolve_artifact_path(base_dir, relative_path)
+    artifact_path.parent.mkdir(parents=True, exist_ok=True)
+
+    artifact_text = text if text.endswith("\n") else f"{text}\n"
+    artifact_path.write_text(artifact_text, encoding="utf-8")
+
+    return artifact_path
+
+
 def read_json_artifact(path: Path) -> dict | list:
     """Read a JSON artifact from a filesystem path."""
     return json.loads(path.read_text(encoding="utf-8"))

@@ -4,11 +4,13 @@ from typing import Annotated
 
 import typer
 
+from driftlens.llm.mock import MockLLMProvider
+from driftlens.reports.markdown import render_markdown_report
 from driftlens.schema.diff import diff_schemas
 from driftlens.schema.extractor import extract_schema
 from driftlens.schema.hash import schema_hash
 from driftlens.schema.severity import classify_changes
-from driftlens.storage.artifacts import write_json_artifact
+from driftlens.storage.artifacts import write_json_artifact, write_text_artifact
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -46,6 +48,7 @@ def detect(
         typer.Argument(exists=True, dir_okay=False, readable=True),
     ],
     out_dir: Annotated[Path, typer.Option("--out-dir")],
+    report: Annotated[bool, typer.Option("--report")] = False,
 ) -> None:
     previous_data = _load_json_object(previous_json)
     current_data = _load_json_object(current_json)
@@ -65,9 +68,16 @@ def detect(
         "summary": "summary.json",
     }
 
+    previous_schema_hash = schema_hash(previous_schema)
+    current_schema_hash = schema_hash(current_schema)
+
+    if report:
+        artifact_paths["llm_analysis"] = "llm/analysis.json"
+        artifact_paths["markdown_report"] = "reports/schema_drift.md"
+
     summary = {
-        "previous_schema_hash": schema_hash(previous_schema),
-        "current_schema_hash": schema_hash(current_schema),
+        "previous_schema_hash": previous_schema_hash,
+        "current_schema_hash": current_schema_hash,
         "change_count": len(classified_changes),
         "severity_counts": _severity_counts(classified_changes),
         "artifacts": artifact_paths,
@@ -79,6 +89,17 @@ def detect(
     write_json_artifact(out_dir, artifact_paths["current_schema"], current_schema)
     write_json_artifact(out_dir, artifact_paths["schema_diff"], changes)
     write_json_artifact(out_dir, artifact_paths["classified_diff"], classified_changes)
+
+    if report:
+        analysis = MockLLMProvider().analyze_diff(
+            previous_schema_hash=previous_schema_hash,
+            current_schema_hash=current_schema_hash,
+            classified_changes=classified_changes,
+        )
+        markdown_report = render_markdown_report(analysis)
+        write_json_artifact(out_dir, artifact_paths["llm_analysis"], analysis)
+        write_text_artifact(out_dir, artifact_paths["markdown_report"], markdown_report)
+
     write_json_artifact(out_dir, artifact_paths["summary"], summary)
 
     typer.echo(json.dumps(summary, sort_keys=True))
