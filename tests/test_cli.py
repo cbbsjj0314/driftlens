@@ -94,7 +94,10 @@ def test_detect_command_with_report_writes_mock_analysis_and_markdown_report(
     report = (out_dir / "reports/schema_drift.md").read_text(encoding="utf-8")
 
     assert analysis["provider"] == "mock"
+    assert "representative_changes" in analysis
+    assert analysis["representative_changes"]
     assert "# DriftLens Schema Drift Report" in report
+    assert "## Representative Changes" in report
     assert read_json_artifact(out_dir / "summary.json") == summary
 
 

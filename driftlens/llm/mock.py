@@ -1,3 +1,6 @@
+from driftlens.llm.representative import representative_changes
+
+
 SEVERITIES = ("high", "medium", "low")
 
 
@@ -104,6 +107,7 @@ class MockLLMProvider:
                 f"Mock analysis found {change_count} classified schema changes "
                 f"with overall severity {overall_severity}."
             ),
+            "representative_changes": representative_changes(classified_changes),
             "impacts": _impacts(change_types),
             "normalization_suggestions": _normalization_suggestions(change_types),
             "test_case_suggestions": _test_case_suggestions(

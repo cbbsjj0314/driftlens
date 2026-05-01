@@ -48,6 +48,7 @@ def test_mock_llm_provider_returns_analysis_dict_with_required_keys() -> None:
         "severity_counts",
         "overall_severity",
         "operator_summary",
+        "representative_changes",
         "impacts",
         "normalization_suggestions",
         "test_case_suggestions",
@@ -139,6 +140,7 @@ def test_mock_llm_provider_returns_none_overall_severity_when_no_changes() -> No
     assert analysis["change_count"] == 0
     assert analysis["overall_severity"] == "none"
     assert analysis["severity_counts"] == {"high": 0, "medium": 0, "low": 0}
+    assert analysis["representative_changes"] == []
 
 
 def test_mock_llm_provider_rejects_unknown_severity() -> None:
@@ -256,6 +258,105 @@ def test_mock_llm_provider_returns_same_output_for_same_input() -> None:
     assert first_analysis["test_case_suggestions"] == (
         second_analysis["test_case_suggestions"]
     )
+    assert first_analysis["representative_changes"] == (
+        second_analysis["representative_changes"]
+    )
+
+
+def test_mock_llm_provider_returns_representative_changes_with_required_fields() -> None:
+    analysis = analyze(
+        [
+            {
+                "change_type": "field_added",
+                "path": "price.final",
+                "previous": None,
+                "current": field("price.final", ["integer"]),
+                "severity": "low",
+            }
+        ]
+    )
+
+    assert analysis["representative_changes"] == [
+        {
+            "severity": "low",
+            "change_type": "field_added",
+            "path": "price.final",
+        }
+    ]
+
+
+def test_mock_llm_provider_orders_representative_changes_by_severity() -> None:
+    analysis = analyze(
+        [
+            {
+                "change_type": "field_added",
+                "path": "new_field",
+                "previous": None,
+                "current": field("new_field", ["string"]),
+                "severity": "low",
+            },
+            {
+                "change_type": "field_removed",
+                "path": "removed_field",
+                "previous": field("removed_field", ["string"]),
+                "current": None,
+                "severity": "high",
+            },
+        ]
+    )
+
+    assert [change["severity"] for change in analysis["representative_changes"]] == [
+        "high",
+        "low",
+    ]
+
+
+def test_mock_llm_provider_limits_representative_changes() -> None:
+    classified_changes = [
+        {
+            "change_type": "field_added",
+            "path": f"field_{index}",
+            "previous": None,
+            "current": field(f"field_{index}", ["string"]),
+            "severity": "low",
+        }
+        for index in range(6)
+    ]
+
+    analysis = analyze(classified_changes)
+
+    assert len(analysis["representative_changes"]) == 5
+    assert [change["path"] for change in analysis["representative_changes"]] == [
+        "field_0",
+        "field_1",
+        "field_2",
+        "field_3",
+        "field_4",
+    ]
+
+
+def test_mock_llm_provider_includes_type_fields_for_type_changed() -> None:
+    analysis = analyze(
+        [
+            {
+                "change_type": "type_changed",
+                "path": "required_age",
+                "previous": ["string"],
+                "current": ["integer"],
+                "severity": "high",
+            }
+        ]
+    )
+
+    assert analysis["representative_changes"] == [
+        {
+            "severity": "high",
+            "change_type": "type_changed",
+            "path": "required_age",
+            "previous_types": ["string"],
+            "current_types": ["integer"],
+        }
+    ]
 
 
 def test_mock_llm_provider_does_not_mutate_classified_changes() -> None:

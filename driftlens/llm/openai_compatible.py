@@ -2,6 +2,8 @@ import json
 
 import openai
 
+from driftlens.llm.representative import representative_changes
+
 
 SEVERITIES = ("high", "medium", "low")
 
@@ -137,6 +139,7 @@ class OpenAICompatibleLLMProvider:
             "operator_summary": _string_or_empty(
                 llm_analysis.get("operator_summary")
             ),
+            "representative_changes": representative_changes(classified_changes),
             "impacts": _list_or_empty(llm_analysis.get("impacts")),
             "normalization_suggestions": _list_or_empty(
                 llm_analysis.get("normalization_suggestions")
