@@ -21,3 +21,10 @@ wheels/
 
 # Local working docs
 docs/local/
+
+# Local generated artifacts
+.artifacts/
+artifacts/
+
+# OS files
+.DS_Store
