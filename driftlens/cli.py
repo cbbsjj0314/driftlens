@@ -1,10 +1,14 @@
 import json
+import os
+from enum import Enum
 from pathlib import Path
 from typing import Annotated
 
+import click
 import typer
 
 from driftlens.llm.mock import MockLLMProvider
+from driftlens.llm.openai_compatible import OpenAICompatibleLLMProvider
 from driftlens.reports.markdown import render_markdown_report
 from driftlens.schema.diff import diff_schemas
 from driftlens.schema.extractor import extract_schema
@@ -14,6 +18,11 @@ from driftlens.storage.artifacts import write_json_artifact, write_text_artifact
 
 
 app = typer.Typer(no_args_is_help=True)
+
+
+class AnalysisProvider(str, Enum):
+    mock = "mock"
+    openai_compatible = "openai-compatible"
 
 
 @app.callback()
@@ -37,6 +46,35 @@ def _severity_counts(classified_changes: list[dict]) -> dict[str, int]:
     return counts
 
 
+def _get_required_env(name: str) -> str:
+    value = os.environ.get(name)
+    if value is None or value == "":
+        raise click.ClickException(
+            f"{name} is required for openai-compatible analysis"
+        )
+
+    return value
+
+
+def _optional_env(name: str) -> str | None:
+    value = os.environ.get(name)
+    if value is None or value == "":
+        return None
+
+    return value
+
+
+def _build_analysis_provider(provider: AnalysisProvider):
+    if provider == AnalysisProvider.mock:
+        return MockLLMProvider()
+
+    return OpenAICompatibleLLMProvider(
+        api_key=_get_required_env("LLM_API_KEY"),
+        model=_get_required_env("LLM_MODEL"),
+        base_url=_optional_env("LLM_BASE_URL"),
+    )
+
+
 @app.command()
 def detect(
     previous_json: Annotated[
@@ -49,7 +87,14 @@ def detect(
     ],
     out_dir: Annotated[Path, typer.Option("--out-dir")],
     report: Annotated[bool, typer.Option("--report")] = False,
+    analysis_provider: Annotated[
+        AnalysisProvider,
+        typer.Option("--analysis-provider"),
+    ] = AnalysisProvider.mock,
 ) -> None:
+    if not report and analysis_provider != AnalysisProvider.mock:
+        raise click.ClickException("--analysis-provider requires --report")
+
     previous_data = _load_json_object(previous_json)
     current_data = _load_json_object(current_json)
 
@@ -91,7 +136,7 @@ def detect(
     write_json_artifact(out_dir, artifact_paths["classified_diff"], classified_changes)
 
     if report:
-        analysis = MockLLMProvider().analyze_diff(
+        analysis = _build_analysis_provider(analysis_provider).analyze_diff(
             previous_schema_hash=previous_schema_hash,
             current_schema_hash=current_schema_hash,
             classified_changes=classified_changes,
