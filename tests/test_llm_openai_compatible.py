@@ -4,6 +4,7 @@ import json
 import pytest
 
 import driftlens.llm.openai_compatible as openai_compatible
+from driftlens.llm.errors import LLMResponseError
 from driftlens.llm.openai_compatible import OpenAICompatibleLLMProvider
 
 
@@ -250,13 +251,27 @@ def test_openai_compatible_provider_rejects_unknown_severity() -> None:
 
 
 def test_openai_compatible_provider_rejects_invalid_json_response() -> None:
-    with pytest.raises(ValueError, match="JSON object"):
-        analyze([], "not-json")
+    with pytest.raises(LLMResponseError, match="JSON object") as exc_info:
+        analyze([], "not-json SECRET_SHOULD_NOT_LEAK")
+
+    assert "SECRET_SHOULD_NOT_LEAK" not in str(exc_info.value)
 
 
-def test_openai_compatible_provider_rejects_non_object_json_response() -> None:
-    with pytest.raises(ValueError, match="JSON object"):
-        analyze([], '["not", "an", "object"]')
+@pytest.mark.parametrize(
+    "content",
+    [
+        '["not", "object"]',
+        '"not object"',
+        "null",
+        "123",
+        "true",
+    ],
+)
+def test_openai_compatible_provider_rejects_non_object_json_response(
+    content,
+) -> None:
+    with pytest.raises(LLMResponseError, match="JSON object"):
+        analyze([], content)
 
 
 def test_openai_compatible_provider_falls_back_for_missing_or_wrong_field_types() -> None:

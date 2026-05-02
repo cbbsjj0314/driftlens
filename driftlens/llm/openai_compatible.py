@@ -2,6 +2,7 @@ import json
 
 import openai
 
+from driftlens.llm.errors import LLMResponseError
 from driftlens.llm.representative import representative_changes
 
 
@@ -80,10 +81,12 @@ def _parse_response_content(content: str) -> dict:
     try:
         parsed = json.loads(content)
     except (json.JSONDecodeError, TypeError) as exc:
-        raise ValueError("LLM response content must be a JSON object") from exc
+        raise LLMResponseError(
+            "LLM response content must be a JSON object"
+        ) from exc
 
     if not isinstance(parsed, dict):
-        raise ValueError("LLM response content must be a JSON object")
+        raise LLMResponseError("LLM response content must be a JSON object")
 
     return parsed
 
