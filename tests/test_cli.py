@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import driftlens.cli as cli
 from typer.testing import CliRunner
 
 from driftlens.cli import app
@@ -8,6 +9,55 @@ from driftlens.storage.artifacts import read_json_artifact
 
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
+
+
+class FakeOpenAICompatibleLLMProvider:
+    calls = []
+
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        model: str,
+        base_url: str | None = None,
+    ) -> None:
+        self.api_key = api_key
+        self.model = model
+        self.base_url = base_url
+        self.calls.append(
+            {
+                "api_key": api_key,
+                "model": model,
+                "base_url": base_url,
+            }
+        )
+
+    def analyze_diff(
+        self,
+        *,
+        previous_schema_hash: str,
+        current_schema_hash: str,
+        classified_changes: list[dict],
+    ) -> dict:
+        return {
+            "provider": "openai-compatible",
+            "previous_schema_hash": previous_schema_hash,
+            "current_schema_hash": current_schema_hash,
+            "change_count": len(classified_changes),
+            "severity_counts": {"high": 0, "medium": 0, "low": 0},
+            "overall_severity": "none",
+            "operator_summary": "Fake OpenAI-compatible analysis.",
+            "representative_changes": [
+                {
+                    "severity": "high",
+                    "change_type": "type_changed",
+                    "path": "price_overview",
+                }
+            ],
+            "impacts": ["Fake impact."],
+            "normalization_suggestions": ["Fake normalization suggestion."],
+            "test_case_suggestions": ["Fake test suggestion."],
+        }
 
 
 def test_detect_command_writes_artifacts_and_prints_json_summary(tmp_path) -> None:
@@ -64,6 +114,33 @@ def test_detect_command_writes_artifacts_and_prints_json_summary(tmp_path) -> No
     assert read_json_artifact(out_dir / "summary.json") == summary
 
 
+def test_detect_command_with_report_defaults_to_mock_analysis_provider(
+    tmp_path,
+) -> None:
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+    out_dir = tmp_path / "artifacts"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(out_dir),
+            "--report",
+        ],
+    )
+
+    assert result.exit_code == 0
+
+    analysis = read_json_artifact(out_dir / "llm/analysis.json")
+
+    assert analysis["provider"] == "mock"
+
+
 def test_detect_command_with_report_writes_mock_analysis_and_markdown_report(
     tmp_path,
 ) -> None:
@@ -99,6 +176,269 @@ def test_detect_command_with_report_writes_mock_analysis_and_markdown_report(
     assert "# DriftLens Schema Drift Report" in report
     assert "## Representative Changes" in report
     assert read_json_artifact(out_dir / "summary.json") == summary
+
+
+def test_detect_command_with_explicit_mock_analysis_provider_writes_mock_report(
+    tmp_path,
+) -> None:
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+    out_dir = tmp_path / "artifacts"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(out_dir),
+            "--report",
+            "--analysis-provider",
+            "mock",
+        ],
+    )
+
+    assert result.exit_code == 0
+
+    analysis = read_json_artifact(out_dir / "llm/analysis.json")
+    report = (out_dir / "reports/schema_drift.md").read_text(encoding="utf-8")
+
+    assert analysis["provider"] == "mock"
+    assert "## Representative Changes" in report
+
+
+def test_detect_command_with_openai_compatible_analysis_provider_uses_env(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    FakeOpenAICompatibleLLMProvider.calls = []
+    monkeypatch.setattr(
+        cli,
+        "OpenAICompatibleLLMProvider",
+        FakeOpenAICompatibleLLMProvider,
+    )
+    monkeypatch.setenv("LLM_API_KEY", "test-api-key")
+    monkeypatch.setenv("LLM_MODEL", "test-model")
+    monkeypatch.setenv("LLM_BASE_URL", "https://api.example.test/v1")
+
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+    out_dir = tmp_path / "artifacts"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(out_dir),
+            "--report",
+            "--analysis-provider",
+            "openai-compatible",
+        ],
+    )
+
+    assert result.exit_code == 0
+    summary = json.loads(result.stdout)
+
+    assert FakeOpenAICompatibleLLMProvider.calls == [
+        {
+            "api_key": "test-api-key",
+            "model": "test-model",
+            "base_url": "https://api.example.test/v1",
+        }
+    ]
+    assert summary["artifacts"]["llm_analysis"] == "llm/analysis.json"
+    assert summary["artifacts"]["markdown_report"] == "reports/schema_drift.md"
+
+    analysis = read_json_artifact(out_dir / "llm/analysis.json")
+    report = (out_dir / "reports/schema_drift.md").read_text(encoding="utf-8")
+
+    assert analysis["provider"] == "openai-compatible"
+    assert "- Provider: openai-compatible" in report
+    assert "## Representative Changes" in report
+    assert read_json_artifact(out_dir / "summary.json") == summary
+
+
+def test_detect_command_with_openai_compatible_treats_unset_base_url_as_none(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    FakeOpenAICompatibleLLMProvider.calls = []
+    monkeypatch.setattr(
+        cli,
+        "OpenAICompatibleLLMProvider",
+        FakeOpenAICompatibleLLMProvider,
+    )
+    monkeypatch.setenv("LLM_API_KEY", "test-api-key")
+    monkeypatch.setenv("LLM_MODEL", "test-model")
+    monkeypatch.delenv("LLM_BASE_URL", raising=False)
+
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(tmp_path / "artifacts"),
+            "--report",
+            "--analysis-provider",
+            "openai-compatible",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert FakeOpenAICompatibleLLMProvider.calls[0]["base_url"] is None
+
+
+def test_detect_command_with_openai_compatible_treats_empty_base_url_as_none(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    FakeOpenAICompatibleLLMProvider.calls = []
+    monkeypatch.setattr(
+        cli,
+        "OpenAICompatibleLLMProvider",
+        FakeOpenAICompatibleLLMProvider,
+    )
+    monkeypatch.setenv("LLM_API_KEY", "test-api-key")
+    monkeypatch.setenv("LLM_MODEL", "test-model")
+    monkeypatch.setenv("LLM_BASE_URL", "")
+
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(tmp_path / "artifacts"),
+            "--report",
+            "--analysis-provider",
+            "openai-compatible",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert FakeOpenAICompatibleLLMProvider.calls[0]["base_url"] is None
+
+
+def test_detect_command_with_openai_compatible_fails_without_required_env(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.setenv("LLM_MODEL", "test-model")
+
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(tmp_path / "artifacts"),
+            "--report",
+            "--analysis-provider",
+            "openai-compatible",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "LLM_API_KEY is required for openai-compatible analysis" in result.output
+
+
+def test_detect_command_with_openai_compatible_fails_without_model_env(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("LLM_API_KEY", "test-api-key")
+    monkeypatch.setenv("LLM_MODEL", "")
+
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(tmp_path / "artifacts"),
+            "--report",
+            "--analysis-provider",
+            "openai-compatible",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "LLM_MODEL is required for openai-compatible analysis" in result.output
+
+
+def test_detect_command_with_openai_compatible_fails_without_report(
+    tmp_path,
+) -> None:
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(tmp_path / "artifacts"),
+            "--analysis-provider",
+            "openai-compatible",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "--analysis-provider requires --report" in result.output
+
+
+def test_detect_command_fails_for_unknown_analysis_provider(tmp_path) -> None:
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(tmp_path / "artifacts"),
+            "--report",
+            "--analysis-provider",
+            "unknown",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "unknown" in result.output
 
 
 def test_detect_command_fails_for_missing_input_file(tmp_path) -> None:
