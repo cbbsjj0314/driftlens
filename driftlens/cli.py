@@ -7,6 +7,7 @@ from typing import Annotated
 import click
 import typer
 
+from driftlens.llm.errors import LLMResponseError
 from driftlens.llm.mock import MockLLMProvider
 from driftlens.llm.openai_compatible import OpenAICompatibleLLMProvider
 from driftlens.reports.markdown import render_markdown_report
@@ -152,11 +153,19 @@ def detect(
     write_json_artifact(out_dir, artifact_paths["classified_diff"], classified_changes)
 
     if report:
-        analysis = _build_analysis_provider(analysis_provider).analyze_diff(
-            previous_schema_hash=previous_schema_hash,
-            current_schema_hash=current_schema_hash,
-            classified_changes=classified_changes,
-        )
+        provider = _build_analysis_provider(analysis_provider)
+        try:
+            analysis = provider.analyze_diff(
+                previous_schema_hash=previous_schema_hash,
+                current_schema_hash=current_schema_hash,
+                classified_changes=classified_changes,
+            )
+        except LLMResponseError as exc:
+            if analysis_provider != AnalysisProvider.openai_compatible:
+                raise
+            raise click.ClickException(
+                f"OpenAI-compatible analysis failed: {exc}"
+            ) from exc
         markdown_report = render_markdown_report(analysis)
         write_json_artifact(out_dir, artifact_paths["llm_analysis"], analysis)
         write_text_artifact(out_dir, artifact_paths["markdown_report"], markdown_report)

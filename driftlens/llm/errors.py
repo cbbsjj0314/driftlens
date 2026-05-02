@@ -1,0 +1,2 @@
+class LLMResponseError(ValueError):
+    pass
