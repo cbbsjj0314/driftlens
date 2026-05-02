@@ -30,10 +30,26 @@ def main() -> None:
     pass
 
 
+def _json_root_type_name(value: object) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, int | float):
+        return "number"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, list):
+        return "array"
+
+    return "object"
+
+
 def _load_json_object(path: Path) -> dict:
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
-        raise typer.BadParameter("JSON root must be an object")
+        root_type = _json_root_type_name(data)
+        raise typer.BadParameter(f"JSON root must be an object; got {root_type}")
 
     return data
 
