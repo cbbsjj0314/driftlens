@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import driftlens.cli as cli
+import pytest
 from typer.testing import CliRunner
 
 from driftlens.cli import app
@@ -460,11 +461,25 @@ def test_detect_command_fails_for_missing_input_file(tmp_path) -> None:
     assert result.exit_code != 0
 
 
-def test_detect_command_fails_for_non_object_json_root(tmp_path) -> None:
+@pytest.mark.parametrize(
+    ("json_content", "type_name"),
+    [
+        ("[1, 2, 3]\n", "array"),
+        ("null\n", "null"),
+        ('"appid"\n', "string"),
+        ("123\n", "number"),
+        ("true\n", "boolean"),
+    ],
+)
+def test_detect_command_fails_for_non_object_json_root(
+    tmp_path,
+    json_content,
+    type_name,
+) -> None:
     runner = CliRunner()
     previous_json = tmp_path / "previous.json"
     current_json = tmp_path / "current.json"
-    previous_json.write_text("[1, 2, 3]\n", encoding="utf-8")
+    previous_json.write_text(json_content, encoding="utf-8")
     current_json.write_text('{"appid": 123}\n', encoding="utf-8")
 
     result = runner.invoke(
@@ -479,3 +494,4 @@ def test_detect_command_fails_for_non_object_json_root(tmp_path) -> None:
     )
 
     assert result.exit_code != 0
+    assert f"JSON root must be an object; got {type_name}" in result.output
