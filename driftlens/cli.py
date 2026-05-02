@@ -153,13 +153,16 @@ def detect(
     write_json_artifact(out_dir, artifact_paths["classified_diff"], classified_changes)
 
     if report:
+        provider = _build_analysis_provider(analysis_provider)
         try:
-            analysis = _build_analysis_provider(analysis_provider).analyze_diff(
+            analysis = provider.analyze_diff(
                 previous_schema_hash=previous_schema_hash,
                 current_schema_hash=current_schema_hash,
                 classified_changes=classified_changes,
             )
         except LLMResponseError as exc:
+            if analysis_provider != AnalysisProvider.openai_compatible:
+                raise
             raise click.ClickException(
                 f"OpenAI-compatible analysis failed: {exc}"
             ) from exc

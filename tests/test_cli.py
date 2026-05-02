@@ -84,6 +84,17 @@ class FakeFailingOpenAICompatibleLLMProvider:
         raise LLMResponseError("LLM response content must be a JSON object")
 
 
+class FakeFailingMockLLMProvider:
+    def analyze_diff(
+        self,
+        *,
+        previous_schema_hash: str,
+        current_schema_hash: str,
+        classified_changes: list[dict],
+    ) -> dict:
+        raise LLMResponseError("Mock analysis failed")
+
+
 def test_detect_command_writes_artifacts_and_prints_json_summary(tmp_path) -> None:
     runner = CliRunner()
     previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
@@ -483,6 +494,33 @@ def test_detect_command_with_openai_compatible_surfaces_response_parse_error(
         "OpenAI-compatible analysis failed: "
         "LLM response content must be a JSON object"
     ) in normalized_output
+
+
+def test_detect_command_does_not_wrap_mock_response_error(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(cli, "MockLLMProvider", FakeFailingMockLLMProvider)
+
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(tmp_path / "artifacts"),
+            "--report",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert isinstance(result.exception, LLMResponseError)
+    assert "OpenAI-compatible analysis failed" not in result.output
 
 
 def test_detect_command_fails_for_unknown_analysis_provider(tmp_path) -> None:
