@@ -1,0 +1,15 @@
+{
+  "product_id": "product-123",
+  "title": "Example Product",
+  "minimum_age": 18,
+  "review_summary": {},
+  "metadata": {},
+  "regional_ratings": {
+    "agency_a": {
+      "rating": "18"
+    },
+    "agency_b": {
+      "rating": "M"
+    }
+  }
+}

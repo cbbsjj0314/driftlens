@@ -1,0 +1,17 @@
+{
+  "product_id": "product-123",
+  "title": "Example Product",
+  "minimum_age": "18",
+  "pricing": {
+    "currency": "USD",
+    "list_amount": 5999,
+    "final_amount": 2999
+  },
+  "review_summary": {
+    "score": 86,
+    "source_url": "https://example.test/reviews/product-123"
+  },
+  "metadata": {
+    "source": "partner-feed"
+  }
+}
