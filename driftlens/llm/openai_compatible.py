@@ -45,10 +45,28 @@ def _messages(
             "role": "system",
             "content": (
                 "You analyze classified schema drift for a data pipeline operator. "
-                "Return only a JSON object. Do not return Markdown fenced code blocks. "
-                "Do not perform schema extraction, schema diffing, or severity judgment. "
-                "Only write these fields: operator_summary, impacts, "
-                "normalization_suggestions, test_case_suggestions."
+                "Return only a JSON object, with no surrounding prose. "
+                "Do not return Markdown fenced code blocks. "
+                "Do not perform schema extraction, schema diffing, or severity judgment; "
+                "those deterministic judgments are already complete. "
+                "Base your analysis only on classified_changes. "
+                "Only write these allowed fields: operator_summary, impacts, "
+                "normalization_suggestions, test_case_suggestions. "
+                "Do not write or overwrite deterministic fields such as provider, "
+                "previous_schema_hash, current_schema_hash, change_count, "
+                "severity_counts, overall_severity, or representative_changes. "
+                "operator_summary must be short and operator-facing. "
+                "If classified_changes contains drift, impacts, normalization_suggestions, "
+                "and test_case_suggestions must each contain at least 1 item, preferably "
+                "2 to 5 concrete items. Empty arrays are allowed only when there is no drift. "
+                "Each impact should describe a concrete pipeline operation risk. "
+                "Each normalization_suggestion should be a concrete parser, normalization, "
+                "or table mapping check. "
+                "Each test_case_suggestion should be a concrete fixture or regression test "
+                "candidate. "
+                "Include the affected path from classified_changes whenever possible. "
+                "Avoid generic fallback wording; make every item specific to the supplied "
+                "change_type, severity, and path."
             ),
         },
         {

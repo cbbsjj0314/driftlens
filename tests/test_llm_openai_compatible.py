@@ -350,30 +350,46 @@ def test_openai_compatible_provider_passes_model_messages_and_temperature() -> N
     [call] = client.chat.completions.calls
     assert call["model"] == "deepseek-chat"
     assert call["temperature"] == 0
-    assert call["messages"] == [
+    assert [message["role"] for message in call["messages"]] == ["system", "user"]
+
+    system_prompt = call["messages"][0]["content"]
+    assert "Return only a JSON object" in system_prompt
+    assert "Do not return Markdown fenced code blocks" in system_prompt
+    assert "allowed fields" in system_prompt
+    assert "operator_summary" in system_prompt
+    assert "impacts" in system_prompt
+    assert "normalization_suggestions" in system_prompt
+    assert "test_case_suggestions" in system_prompt
+    assert "Do not write or overwrite deterministic fields" in system_prompt
+    assert "previous_schema_hash" in system_prompt
+    assert "current_schema_hash" in system_prompt
+    assert "change_count" in system_prompt
+    assert "severity_counts" in system_prompt
+    assert "overall_severity" in system_prompt
+    assert "representative_changes" in system_prompt
+    assert "Do not perform schema extraction" in system_prompt
+    assert "schema diffing" in system_prompt
+    assert "severity judgment" in system_prompt
+    assert "at least 1 item" in system_prompt
+    assert "2 to 5 concrete items" in system_prompt
+    assert "Empty arrays are allowed only when there is no drift" in system_prompt
+    assert "affected path" in system_prompt
+    assert "Avoid generic fallback wording" in system_prompt
+
+    assert json.loads(call["messages"][1]["content"]) == {
+        "previous_schema_hash": "previous-hash",
+        "current_schema_hash": "current-hash",
+        "classified_changes": classified_changes,
+    }
+    assert call["messages"][1]["content"] == json.dumps(
         {
-            "role": "system",
-            "content": (
-                "You analyze classified schema drift for a data pipeline operator. "
-                "Return only a JSON object. Do not return Markdown fenced code blocks. "
-                "Do not perform schema extraction, schema diffing, or severity judgment. "
-                "Only write these fields: operator_summary, impacts, "
-                "normalization_suggestions, test_case_suggestions."
-            ),
+            "previous_schema_hash": "previous-hash",
+            "current_schema_hash": "current-hash",
+            "classified_changes": classified_changes,
         },
-        {
-            "role": "user",
-            "content": json.dumps(
-                {
-                    "previous_schema_hash": "previous-hash",
-                    "current_schema_hash": "current-hash",
-                    "classified_changes": classified_changes,
-                },
-                sort_keys=True,
-                separators=(",", ":"),
-            ),
-        },
-    ]
+        sort_keys=True,
+        separators=(",", ":"),
+    )
 
 
 def test_openai_compatible_provider_does_not_create_client_when_injected(
