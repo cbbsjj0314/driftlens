@@ -37,7 +37,8 @@ LLM은 그 결과를 바탕으로 운영자 관점에서 이해하기 쉬운 설
 * `driftlens/storage/`: 입력 snapshot과 생성 artifact를 파일 시스템에 저장한다.
 * `driftlens/llm/`: deterministic diff 결과를 바탕으로 선택적 LLM analysis를 생성한다.
 * `driftlens/reports/`: 계산된 결과와 LLM analysis를 Markdown report로 렌더링한다.
-* `driftlens/cli.py`: `driftlens detect` CLI entrypoint와 실행 흐름을 연결한다.
+* `driftlens/detect.py`: previous/current JSON object를 받아 schema 추출, diff 생성, severity 계산, artifact 저장, optional report 생성을 orchestration한다.
+* `driftlens/cli.py`: `driftlens detect` CLI entrypoint로 입력 파일 로딩, root validation, provider 설정 후 `run_detection()`을 호출한다.
 * `tests/`: schema 추출, diff, severity, CLI artifact 생성 흐름을 검증한다.
 
 ## 사용 방법
