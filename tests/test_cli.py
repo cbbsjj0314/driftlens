@@ -572,10 +572,14 @@ def test_detect_command_fails_for_missing_input_file(tmp_path) -> None:
     assert result.exit_code != 0
 
 
-def test_detect_command_fails_for_invalid_json_input(tmp_path) -> None:
+def test_detect_command_fails_for_invalid_json_input(
+    tmp_path,
+    monkeypatch,
+) -> None:
     runner = CliRunner()
-    previous_json = tmp_path / "previous.json"
-    current_json = tmp_path / "current.json"
+    monkeypatch.chdir(tmp_path)
+    previous_json = Path("previous.json")
+    current_json = Path("current.json")
     previous_json.write_text('{"appid": 123,\n', encoding="utf-8")
     current_json.write_text('{"appid": 123}\n', encoding="utf-8")
 
@@ -586,7 +590,7 @@ def test_detect_command_fails_for_invalid_json_input(tmp_path) -> None:
             str(previous_json),
             str(current_json),
             "--out-dir",
-            str(tmp_path / "artifacts"),
+            "artifacts",
         ],
         terminal_width=200,
     )
