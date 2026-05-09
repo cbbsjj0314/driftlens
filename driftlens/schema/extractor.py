@@ -1,4 +1,7 @@
-def infer_type(value: object) -> str:
+from driftlens.schema.types import ObservedSchema, SchemaField, SchemaValueType
+
+
+def infer_type(value: object) -> SchemaValueType:
     """Return the DriftLens schema type for a JSON-compatible value."""
     if value is None:
         return "null"
@@ -18,8 +21,8 @@ def infer_type(value: object) -> str:
     return "unknown"
 
 
-def _extract_fields(data: dict, parent_path: str = "") -> list[dict]:
-    fields = []
+def _extract_fields(data: dict, parent_path: str = "") -> list[SchemaField]:
+    fields: list[SchemaField] = []
     for key, value in data.items():
         path = f"{parent_path}.{key}" if parent_path else key
         inferred_type = infer_type(value)
@@ -38,8 +41,8 @@ def _extract_fields(data: dict, parent_path: str = "") -> list[dict]:
     return fields
 
 
-def _extract_array_item_fields(items: list, array_path: str) -> list[dict]:
-    fields = []
+def _extract_array_item_fields(items: list, array_path: str) -> list[SchemaField]:
+    fields: list[SchemaField] = []
     item_path = f"{array_path}[]"
 
     for item in items:
@@ -57,7 +60,7 @@ def _extract_array_item_fields(items: list, array_path: str) -> list[dict]:
     return fields
 
 
-def _merge_fields(fields: list[dict]) -> list[dict]:
+def _merge_fields(fields: list[SchemaField]) -> list[SchemaField]:
     fields_by_path = {}
     for field in fields:
         path = field["path"]
@@ -73,7 +76,7 @@ def _merge_fields(fields: list[dict]) -> list[dict]:
             fields_by_path[path]["nullable"] or field["nullable"]
         )
 
-    merged_fields = []
+    merged_fields: list[SchemaField] = []
     for field in fields_by_path.values():
         merged_fields.append(
             {
@@ -86,7 +89,7 @@ def _merge_fields(fields: list[dict]) -> list[dict]:
     return merged_fields
 
 
-def extract_schema(data: dict) -> dict:
+def extract_schema(data: dict) -> ObservedSchema:
     """Extract a deterministic schema description from a JSON object."""
     fields = _merge_fields(_extract_fields(data))
     fields.sort(key=lambda field: field["path"])

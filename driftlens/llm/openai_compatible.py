@@ -4,15 +4,17 @@ import openai
 
 from driftlens.llm.errors import LLMResponseError
 from driftlens.llm.representative import representative_changes
+from driftlens.llm.types import LLMAnalysis, LLMTextItems
 from driftlens.schema.severity_summary import overall_severity, severity_counts
+from driftlens.schema.types import ClassifiedSchemaChange
 
 
 def _messages(
     *,
     previous_schema_hash: str,
     current_schema_hash: str,
-    classified_changes: list[dict],
-) -> list[dict]:
+    classified_changes: list[ClassifiedSchemaChange],
+) -> list[dict[str, str]]:
     payload = {
         "previous_schema_hash": previous_schema_hash,
         "current_schema_hash": current_schema_hash,
@@ -76,7 +78,7 @@ def _string_or_empty(value: object) -> str:
     return ""
 
 
-def _list_or_empty(value: object) -> list:
+def _list_or_empty(value: object) -> LLMTextItems:
     if isinstance(value, list):
         return value
 
@@ -111,8 +113,8 @@ class OpenAICompatibleLLMProvider:
         *,
         previous_schema_hash: str,
         current_schema_hash: str,
-        classified_changes: list[dict],
-    ) -> dict:
+        classified_changes: list[ClassifiedSchemaChange],
+    ) -> LLMAnalysis:
         counts = severity_counts(classified_changes)
         highest_severity = overall_severity(counts)
         change_count = len(classified_changes)

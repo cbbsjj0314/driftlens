@@ -1,7 +1,15 @@
-SEVERITIES = ("high", "medium", "low")
+from driftlens.schema.types import (
+    ClassifiedSchemaChange,
+    OverallSeverity,
+    Severity,
+    SeverityCounts,
+)
 
 
-def severity_counts(classified_changes: list[dict]) -> dict[str, int]:
+SEVERITIES: tuple[Severity, ...] = ("high", "medium", "low")
+
+
+def severity_counts(classified_changes: list[ClassifiedSchemaChange]) -> SeverityCounts:
     """Return ordered severity counts for classified schema changes."""
     counts = {severity: 0 for severity in SEVERITIES}
 
@@ -14,7 +22,7 @@ def severity_counts(classified_changes: list[dict]) -> dict[str, int]:
     return counts
 
 
-def overall_severity(counts: dict[str, int]) -> str:
+def overall_severity(counts: SeverityCounts) -> OverallSeverity:
     """Return the highest present severity, or none when there is no drift."""
     for severity in SEVERITIES:
         if counts[severity] > 0:
@@ -23,6 +31,6 @@ def overall_severity(counts: dict[str, int]) -> str:
     return "none"
 
 
-def severity_rank() -> dict[str, int]:
+def severity_rank() -> dict[Severity, int]:
     """Return deterministic rank values for severity ordering."""
     return {severity: index for index, severity in enumerate(SEVERITIES)}

@@ -2,12 +2,14 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Protocol
 
+from driftlens.llm.types import LLMAnalysis
 from driftlens.reports.markdown import render_markdown_report
 from driftlens.schema.diff import diff_schemas
 from driftlens.schema.extractor import extract_schema
 from driftlens.schema.hash import schema_hash
 from driftlens.schema.severity import classify_changes
 from driftlens.schema.severity_summary import severity_counts
+from driftlens.schema.types import ClassifiedSchemaChange
 from driftlens.storage.artifacts import write_json_artifact, write_text_artifact
 
 
@@ -17,8 +19,8 @@ class AnalysisProviderProtocol(Protocol):
         *,
         previous_schema_hash: str,
         current_schema_hash: str,
-        classified_changes: list[dict],
-    ) -> dict:
+        classified_changes: list[ClassifiedSchemaChange],
+    ) -> LLMAnalysis:
         pass
 
 
@@ -44,7 +46,7 @@ def _build_summary(
     *,
     previous_schema_hash: str,
     current_schema_hash: str,
-    classified_changes: list[dict],
+    classified_changes: list[ClassifiedSchemaChange],
     artifact_paths: dict[str, str],
 ) -> dict:
     return {

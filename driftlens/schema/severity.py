@@ -1,4 +1,7 @@
-def classify_severity(change: dict) -> str:
+from driftlens.schema.types import ClassifiedSchemaChange, SchemaChange, Severity
+
+
+def classify_severity(change: SchemaChange) -> Severity:
     """Return deterministic severity for a schema diff change."""
     change_type = change["change_type"]
 
@@ -18,9 +21,9 @@ def classify_severity(change: dict) -> str:
     raise ValueError(f"Unknown change_type: {change_type}")
 
 
-def classify_changes(changes: list[dict]) -> list[dict]:
+def classify_changes(changes: list[SchemaChange]) -> list[ClassifiedSchemaChange]:
     """Return schema changes with severity without mutating the input."""
-    classified_changes = []
+    classified_changes: list[ClassifiedSchemaChange] = []
 
     for change in changes:
         classified_change = dict(change)

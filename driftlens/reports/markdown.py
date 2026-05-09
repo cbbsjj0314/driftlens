@@ -1,7 +1,8 @@
+from driftlens.llm.types import LLMAnalysis, LLMTextItems, RepresentativeChange
 from driftlens.schema.severity_summary import SEVERITIES
 
 
-def _format_bullets(items: list, fallback: str) -> list[str]:
+def _format_bullets(items: LLMTextItems, fallback: str) -> list[str]:
     if not items:
         return [f"- {fallback}"]
 
@@ -15,7 +16,7 @@ def _operator_summary(summary: str) -> str:
     return "No operator summary provided."
 
 
-def _format_representative_change(change: dict) -> str:
+def _format_representative_change(change: RepresentativeChange) -> str:
     summary = f"{change['severity']} {change['change_type']}: {change['path']}"
 
     previous_types = change.get("previous_types")
@@ -28,14 +29,14 @@ def _format_representative_change(change: dict) -> str:
     return f"- {summary}"
 
 
-def _format_representative_changes(changes: list) -> list[str]:
+def _format_representative_changes(changes: list[RepresentativeChange]) -> list[str]:
     if not changes:
         return ["- No representative changes provided."]
 
     return [_format_representative_change(change) for change in changes]
 
 
-def render_markdown_report(analysis: dict) -> str:
+def render_markdown_report(analysis: LLMAnalysis) -> str:
     """Render an operator-facing Markdown report from an LLM analysis dict."""
     severity_counts = analysis["severity_counts"]
 

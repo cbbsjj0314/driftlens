@@ -1,10 +1,12 @@
 from driftlens.llm.representative import representative_changes
+from driftlens.llm.types import LLMAnalysis
 from driftlens.schema.severity_summary import overall_severity, severity_counts
+from driftlens.schema.types import ChangeType, ClassifiedSchemaChange
 
 
-def _change_types(classified_changes: list[dict]) -> list[str]:
+def _change_types(classified_changes: list[ClassifiedSchemaChange]) -> list[ChangeType]:
     seen = set()
-    ordered_change_types = []
+    ordered_change_types: list[ChangeType] = []
 
     for change in classified_changes:
         change_type = change["change_type"]
@@ -15,7 +17,7 @@ def _change_types(classified_changes: list[dict]) -> list[str]:
     return ordered_change_types
 
 
-def _impacts(change_types: list[str]) -> list[str]:
+def _impacts(change_types: list[ChangeType]) -> list[str]:
     impacts = []
 
     if "field_removed" in change_types or "type_changed" in change_types:
@@ -30,7 +32,7 @@ def _impacts(change_types: list[str]) -> list[str]:
     return impacts
 
 
-def _normalization_suggestions(change_types: list[str]) -> list[str]:
+def _normalization_suggestions(change_types: list[ChangeType]) -> list[str]:
     suggestions = []
 
     if "field_removed" in change_types or "type_changed" in change_types:
@@ -45,7 +47,7 @@ def _normalization_suggestions(change_types: list[str]) -> list[str]:
     return suggestions
 
 
-def _test_case_suggestions(change_count: int, change_types: list[str]) -> list[str]:
+def _test_case_suggestions(change_count: int, change_types: list[ChangeType]) -> list[str]:
     if change_count == 0:
         return ["Keep a no-drift regression test for unchanged previous/current fixtures."]
 
@@ -67,8 +69,8 @@ class MockLLMProvider:
         *,
         previous_schema_hash: str,
         current_schema_hash: str,
-        classified_changes: list[dict],
-    ) -> dict:
+        classified_changes: list[ClassifiedSchemaChange],
+    ) -> LLMAnalysis:
         counts = severity_counts(classified_changes)
         highest_severity = overall_severity(counts)
         change_types = _change_types(classified_changes)
