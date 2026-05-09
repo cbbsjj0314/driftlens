@@ -7,16 +7,10 @@ from typing import Annotated
 import click
 import typer
 
+from driftlens.detect import run_detection
 from driftlens.llm.errors import LLMResponseError
 from driftlens.llm.mock import MockLLMProvider
 from driftlens.llm.openai_compatible import OpenAICompatibleLLMProvider
-from driftlens.reports.markdown import render_markdown_report
-from driftlens.schema.diff import diff_schemas
-from driftlens.schema.extractor import extract_schema
-from driftlens.schema.hash import schema_hash
-from driftlens.schema.severity import classify_changes
-from driftlens.schema.severity_summary import severity_counts
-from driftlens.storage.artifacts import write_json_artifact, write_text_artifact
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -122,61 +116,17 @@ def detect(
     previous_data = _load_json_object(previous_json)
     current_data = _load_json_object(current_json)
 
-    previous_schema = extract_schema(previous_data)
-    current_schema = extract_schema(current_data)
-    changes = diff_schemas(previous_schema, current_schema)
-    classified_changes = classify_changes(changes)
-
-    artifact_paths = {
-        "previous_sample": "samples/previous.json",
-        "current_sample": "samples/current.json",
-        "previous_schema": "schemas/previous.json",
-        "current_schema": "schemas/current.json",
-        "schema_diff": "diffs/schema_diff.json",
-        "classified_diff": "diffs/classified_diff.json",
-        "summary": "summary.json",
-    }
-
-    previous_schema_hash = schema_hash(previous_schema)
-    current_schema_hash = schema_hash(current_schema)
-
-    if report:
-        artifact_paths["llm_analysis"] = "llm/analysis.json"
-        artifact_paths["markdown_report"] = "reports/schema_drift.md"
-
-    summary = {
-        "previous_schema_hash": previous_schema_hash,
-        "current_schema_hash": current_schema_hash,
-        "change_count": len(classified_changes),
-        "severity_counts": severity_counts(classified_changes),
-        "artifacts": artifact_paths,
-    }
-
-    write_json_artifact(out_dir, artifact_paths["previous_sample"], previous_data)
-    write_json_artifact(out_dir, artifact_paths["current_sample"], current_data)
-    write_json_artifact(out_dir, artifact_paths["previous_schema"], previous_schema)
-    write_json_artifact(out_dir, artifact_paths["current_schema"], current_schema)
-    write_json_artifact(out_dir, artifact_paths["schema_diff"], changes)
-    write_json_artifact(out_dir, artifact_paths["classified_diff"], classified_changes)
-
     if report:
         provider = _build_analysis_provider(analysis_provider)
         try:
-            analysis = provider.analyze_diff(
-                previous_schema_hash=previous_schema_hash,
-                current_schema_hash=current_schema_hash,
-                classified_changes=classified_changes,
-            )
+            summary = run_detection(previous_data, current_data, out_dir, provider)
         except LLMResponseError as exc:
             if analysis_provider != AnalysisProvider.openai_compatible:
                 raise
             raise click.ClickException(
                 f"OpenAI-compatible analysis failed: {exc}"
             ) from exc
-        markdown_report = render_markdown_report(analysis)
-        write_json_artifact(out_dir, artifact_paths["llm_analysis"], analysis)
-        write_text_artifact(out_dir, artifact_paths["markdown_report"], markdown_report)
-
-    write_json_artifact(out_dir, artifact_paths["summary"], summary)
+    else:
+        summary = run_detection(previous_data, current_data, out_dir)
 
     typer.echo(json.dumps(summary, sort_keys=True))
