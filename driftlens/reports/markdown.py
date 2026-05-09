@@ -1,4 +1,4 @@
-SEVERITIES = ("high", "medium", "low")
+from driftlens.schema.severity_summary import SEVERITIES
 
 
 def _format_bullets(items: list, fallback: str) -> list[str]:

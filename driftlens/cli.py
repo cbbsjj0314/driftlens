@@ -15,6 +15,7 @@ from driftlens.schema.diff import diff_schemas
 from driftlens.schema.extractor import extract_schema
 from driftlens.schema.hash import schema_hash
 from driftlens.schema.severity import classify_changes
+from driftlens.schema.severity_summary import severity_counts
 from driftlens.storage.artifacts import write_json_artifact, write_text_artifact
 
 
@@ -53,14 +54,6 @@ def _load_json_object(path: Path) -> dict:
         raise typer.BadParameter(f"JSON root must be an object; got {root_type}")
 
     return data
-
-
-def _severity_counts(classified_changes: list[dict]) -> dict[str, int]:
-    counts = {"high": 0, "medium": 0, "low": 0}
-    for change in classified_changes:
-        counts[change["severity"]] += 1
-
-    return counts
 
 
 def _get_required_env(name: str) -> str:
@@ -141,7 +134,7 @@ def detect(
         "previous_schema_hash": previous_schema_hash,
         "current_schema_hash": current_schema_hash,
         "change_count": len(classified_changes),
-        "severity_counts": _severity_counts(classified_changes),
+        "severity_counts": severity_counts(classified_changes),
         "artifacts": artifact_paths,
     }
 

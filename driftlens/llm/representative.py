@@ -1,17 +1,19 @@
-SEVERITIES = ("high", "medium", "low")
+from driftlens.schema.severity_summary import severity_rank
+
+
 MAX_REPRESENTATIVE_CHANGES = 5
 
 
 def representative_changes(classified_changes: list[dict]) -> list[dict]:
     """Return deterministic representative schema changes for reports."""
-    severity_rank = {severity: index for index, severity in enumerate(SEVERITIES)}
+    ranks = severity_rank()
     indexed_changes = []
 
     for index, change in enumerate(classified_changes):
         severity = change["severity"]
-        if severity not in severity_rank:
+        if severity not in ranks:
             raise ValueError(f"Unknown severity: {severity}")
-        indexed_changes.append((severity_rank[severity], index, change))
+        indexed_changes.append((ranks[severity], index, change))
 
     selected_changes = sorted(indexed_changes)[:MAX_REPRESENTATIVE_CHANGES]
     representatives = []
