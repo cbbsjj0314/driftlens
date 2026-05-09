@@ -22,6 +22,40 @@ class AnalysisProviderProtocol(Protocol):
         pass
 
 
+def _build_artifact_paths(*, include_report: bool) -> dict[str, str]:
+    artifact_paths = {
+        "previous_sample": "samples/previous.json",
+        "current_sample": "samples/current.json",
+        "previous_schema": "schemas/previous.json",
+        "current_schema": "schemas/current.json",
+        "schema_diff": "diffs/schema_diff.json",
+        "classified_diff": "diffs/classified_diff.json",
+        "summary": "summary.json",
+    }
+
+    if include_report:
+        artifact_paths["llm_analysis"] = "llm/analysis.json"
+        artifact_paths["markdown_report"] = "reports/schema_drift.md"
+
+    return artifact_paths
+
+
+def _build_summary(
+    *,
+    previous_schema_hash: str,
+    current_schema_hash: str,
+    classified_changes: list[dict],
+    artifact_paths: dict[str, str],
+) -> dict:
+    return {
+        "previous_schema_hash": previous_schema_hash,
+        "current_schema_hash": current_schema_hash,
+        "change_count": len(classified_changes),
+        "severity_counts": severity_counts(classified_changes),
+        "artifacts": artifact_paths,
+    }
+
+
 def run_detection(
     previous_data: dict,
     current_data: dict,
@@ -35,31 +69,17 @@ def run_detection(
     current_schema = extract_schema(current_sample)
     changes = diff_schemas(previous_schema, current_schema)
     classified_changes = classify_changes(changes)
-
-    artifact_paths = {
-        "previous_sample": "samples/previous.json",
-        "current_sample": "samples/current.json",
-        "previous_schema": "schemas/previous.json",
-        "current_schema": "schemas/current.json",
-        "schema_diff": "diffs/schema_diff.json",
-        "classified_diff": "diffs/classified_diff.json",
-        "summary": "summary.json",
-    }
+    artifact_paths = _build_artifact_paths(include_report=analysis_provider is not None)
 
     previous_schema_hash = schema_hash(previous_schema)
     current_schema_hash = schema_hash(current_schema)
 
-    if analysis_provider is not None:
-        artifact_paths["llm_analysis"] = "llm/analysis.json"
-        artifact_paths["markdown_report"] = "reports/schema_drift.md"
-
-    summary = {
-        "previous_schema_hash": previous_schema_hash,
-        "current_schema_hash": current_schema_hash,
-        "change_count": len(classified_changes),
-        "severity_counts": severity_counts(classified_changes),
-        "artifacts": artifact_paths,
-    }
+    summary = _build_summary(
+        previous_schema_hash=previous_schema_hash,
+        current_schema_hash=current_schema_hash,
+        classified_changes=classified_changes,
+        artifact_paths=artifact_paths,
+    )
 
     write_json_artifact(out_dir, artifact_paths["previous_sample"], previous_sample)
     write_json_artifact(out_dir, artifact_paths["current_sample"], current_sample)
