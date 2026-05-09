@@ -48,7 +48,21 @@ def _json_root_type_name(value: object) -> str:
 
 
 def _load_json_object(path: Path) -> dict:
-    data = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        raw_json = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise click.ClickException(
+            f"Failed to read JSON file '{path}': {exc}"
+        ) from exc
+
+    try:
+        data = json.loads(raw_json)
+    except json.JSONDecodeError as exc:
+        raise click.ClickException(
+            f"Invalid JSON in '{path}' at line {exc.lineno}, "
+            f"column {exc.colno}: {exc.msg}"
+        ) from exc
+
     if not isinstance(data, dict):
         root_type = _json_root_type_name(data)
         raise typer.BadParameter(f"JSON root must be an object; got {root_type}")

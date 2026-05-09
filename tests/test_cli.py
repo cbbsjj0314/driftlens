@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import click
 import driftlens.cli as cli
 import pytest
 from typer.testing import CliRunner
@@ -563,6 +564,52 @@ def test_detect_command_fails_for_missing_input_file(tmp_path) -> None:
     )
 
     assert result.exit_code != 0
+
+
+def test_detect_command_fails_for_invalid_json_input(tmp_path) -> None:
+    runner = CliRunner()
+    previous_json = tmp_path / "previous.json"
+    current_json = tmp_path / "current.json"
+    previous_json.write_text('{"appid": 123,\n', encoding="utf-8")
+    current_json.write_text('{"appid": 123}\n', encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(tmp_path / "artifacts"),
+        ],
+        terminal_width=200,
+    )
+
+    output_text = result.output.translate(str.maketrans("", "", "╭─╮│╰╯"))
+    normalized_output = " ".join(output_text.split())
+
+    assert result.exit_code != 0
+    assert "Invalid JSON in" in normalized_output
+    assert "previous.json" in normalized_output
+    assert "at line 2, column 1" in normalized_output
+    assert "Expecting property name enclosed in double quotes" in normalized_output
+
+
+def test_load_json_object_wraps_file_read_errors(monkeypatch, tmp_path) -> None:
+    unreadable_json = tmp_path / "unreadable.json"
+
+    def fail_read_text(self, *, encoding=None):
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(Path, "read_text", fail_read_text)
+
+    with pytest.raises(click.ClickException) as exc_info:
+        cli._load_json_object(unreadable_json)
+
+    assert (
+        f"Failed to read JSON file '{unreadable_json}': permission denied"
+        == exc_info.value.message
+    )
 
 
 @pytest.mark.parametrize(
