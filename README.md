@@ -31,6 +31,15 @@ schema 추출, schema 비교, 규칙 기반 위험도 판정은 재현 가능한
 
 LLM은 그 결과를 바탕으로 운영자 관점에서 이해하기 쉬운 설명을 생성하는 레이어이다.
 
+## 코드 구조
+
+* `driftlens/schema/`: JSON snapshot에서 관찰된 schema를 추출하고 schema diff를 계산한다.
+* `driftlens/storage/`: 입력 snapshot과 생성 artifact를 파일 시스템에 저장한다.
+* `driftlens/llm/`: deterministic diff 결과를 바탕으로 선택적 LLM analysis를 생성한다.
+* `driftlens/reports/`: 계산된 결과와 LLM analysis를 Markdown report로 렌더링한다.
+* `driftlens/cli.py`: `driftlens detect` CLI entrypoint와 실행 흐름을 연결한다.
+* `tests/`: schema 추출, diff, severity, CLI artifact 생성 흐름을 검증한다.
+
 ## 사용 방법
 
 **기본 실행:**
