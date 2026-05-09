@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 import click
@@ -12,6 +13,13 @@ from driftlens.storage.artifacts import read_json_artifact
 
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
+ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
+
+def _normalize_cli_error_output(output: str) -> str:
+    output = ANSI_ESCAPE_RE.sub("", output)
+    output = output.translate(str.maketrans("", "", "╭─╮│╰╯"))
+    return " ".join(output.split())
 
 
 class FakeOpenAICompatibleLLMProvider:
@@ -451,7 +459,8 @@ def test_detect_command_with_openai_compatible_fails_without_report(
     )
 
     assert result.exit_code != 0
-    assert "--analysis-provider requires --report" in result.output
+    normalized_output = _normalize_cli_error_output(result.output)
+    assert "--analysis-provider requires --report" in normalized_output
 
 
 def test_detect_command_with_openai_compatible_surfaces_response_parse_error(
@@ -485,10 +494,7 @@ def test_detect_command_with_openai_compatible_surfaces_response_parse_error(
         terminal_width=120,
     )
 
-    output_text = result.output.translate(
-        str.maketrans("", "", "╭─╮│╰╯")
-    )
-    normalized_output = " ".join(output_text.split())
+    normalized_output = _normalize_cli_error_output(result.output)
 
     assert result.exit_code != 0
     assert (
@@ -585,8 +591,7 @@ def test_detect_command_fails_for_invalid_json_input(tmp_path) -> None:
         terminal_width=200,
     )
 
-    output_text = result.output.translate(str.maketrans("", "", "╭─╮│╰╯"))
-    normalized_output = " ".join(output_text.split())
+    normalized_output = _normalize_cli_error_output(result.output)
 
     assert result.exit_code != 0
     assert "Invalid JSON in" in normalized_output
