@@ -1,0 +1,24 @@
+{
+  "type": "game",
+  "name": "Synthetic Demo Game",
+  "required_age": "0",
+  "is_free": false,
+  "controller_support": "full",
+  "price_overview": {
+    "currency": "USD"
+  },
+  "metacritic": {
+    "score": 82,
+    "url": "https://example.invalid/synthetic-demo-game"
+  },
+  "platforms": {
+    "windows": true,
+    "mac": false,
+    "linux": true
+  },
+  "ratings": {
+    "esrb": {
+      "rating": "E"
+    }
+  }
+}
