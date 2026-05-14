@@ -88,6 +88,8 @@ uv run driftlens detect previous.json current.json --out-dir .artifacts/demo --r
 
 실제 Steam `appdetails` 응답 snapshot을 사용해 **DriftLens**를 시험해 본 예시이다.
 
+공개 가능한 synthetic fixture와 mock report 생성 흐름은 [`docs/demo/sanitized-steam-appdetails.md`](docs/demo/sanitized-steam-appdetails.md)에 정리되어 있다.
+
 Steam `appdetails` 응답은 실제 게임 데이터 바깥에 `appid` key가 붙어 있는 구조이다.
 
 서로 다른 게임의 원본 응답 전체를 그대로 비교하면 `appid`가 다르다는 당연한 차이까지 diff에 포함될 수 있다.

@@ -6,6 +6,9 @@ from driftlens.storage.artifacts import read_json_artifact
 
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
+SANITIZED_STEAM_APPDETAILS_DIR = (
+    Path(__file__).parents[1] / "examples" / "sanitized-steam-appdetails"
+)
 
 
 class FakeAnalysisProvider:
@@ -33,6 +36,10 @@ class FakeAnalysisProvider:
 
 def _fixture(name: str) -> dict:
     return read_json_artifact(FIXTURE_DIR / name)
+
+
+def _sanitized_steam_appdetails_fixture(name: str) -> dict:
+    return read_json_artifact(SANITIZED_STEAM_APPDETAILS_DIR / name)
 
 
 def test_run_detection_writes_default_artifacts_and_summary(tmp_path) -> None:
@@ -99,3 +106,40 @@ def test_run_detection_with_provider_writes_analysis_and_markdown_report(
     assert analysis["provider"] == "fake"
     assert "# DriftLens Schema Drift Report" in markdown_report
     assert read_json_artifact(out_dir / "summary.json") == summary
+
+
+def test_run_detection_with_sanitized_steam_appdetails_demo_fixtures(
+    tmp_path,
+) -> None:
+    previous_data = _sanitized_steam_appdetails_fixture("previous.json")
+    current_data = _sanitized_steam_appdetails_fixture("current.json")
+    out_dir = tmp_path / "artifacts"
+
+    summary = run_detection(previous_data, current_data, out_dir)
+
+    assert (out_dir / "summary.json").exists()
+    assert (out_dir / "diffs/classified_diff.json").exists()
+    assert read_json_artifact(out_dir / "summary.json") == summary
+
+    classified_diff = read_json_artifact(out_dir / "diffs/classified_diff.json")
+    changes_by_path = {change["path"]: change for change in classified_diff}
+
+    assert {
+        "required_age",
+        "price_overview",
+        "price_overview.currency",
+        "ratings.agcom.rating",
+    } <= changes_by_path.keys()
+    assert changes_by_path["required_age"]["change_type"] == "type_changed"
+    assert changes_by_path["price_overview"]["change_type"] == "field_removed"
+    assert (
+        changes_by_path["price_overview.currency"]["change_type"]
+        == "field_removed"
+    )
+    assert changes_by_path["ratings.agcom.rating"]["change_type"] == "field_added"
+
+    assert {
+        "field_removed",
+        "field_added",
+        "type_changed",
+    } <= {change["change_type"] for change in classified_diff}
