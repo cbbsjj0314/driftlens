@@ -3,6 +3,8 @@ import json
 
 import pytest
 
+pytest.importorskip("openai")
+
 import driftlens.llm.openai_compatible as openai_compatible
 from driftlens.llm.errors import LLMResponseError
 from driftlens.llm.openai_compatible import OpenAICompatibleLLMProvider

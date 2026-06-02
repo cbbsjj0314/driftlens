@@ -5,8 +5,12 @@ description = "Local-first schema drift monitor for JSON ingestion pipelines."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "openai>=2.0.0",
     "typer>=0.20.0",
+]
+
+[project.optional-dependencies]
+llm = [
+    "openai>=2.0.0",
 ]
 
 [project.scripts]

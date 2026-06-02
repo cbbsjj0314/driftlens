@@ -104,6 +104,10 @@ class FakeFailingMockLLMProvider:
         raise LLMResponseError("Mock analysis failed")
 
 
+def fail_openai_compatible_provider_load():
+    raise AssertionError("openai-compatible provider should not be loaded")
+
+
 def test_detect_command_writes_artifacts_and_prints_json_summary(tmp_path) -> None:
     runner = CliRunner()
     previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
@@ -158,6 +162,34 @@ def test_detect_command_writes_artifacts_and_prints_json_summary(tmp_path) -> No
     assert read_json_artifact(out_dir / "summary.json") == summary
 
 
+def test_detect_command_without_report_does_not_load_openai_compatible_provider(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        cli,
+        "_load_openai_compatible_provider_class",
+        fail_openai_compatible_provider_load,
+    )
+
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(tmp_path / "artifacts"),
+        ],
+    )
+
+    assert result.exit_code == 0
+
+
 def test_detect_command_with_report_defaults_to_mock_analysis_provider(
     tmp_path,
 ) -> None:
@@ -183,6 +215,37 @@ def test_detect_command_with_report_defaults_to_mock_analysis_provider(
     analysis = read_json_artifact(out_dir / "llm/analysis.json")
 
     assert analysis["provider"] == "mock"
+
+
+def test_detect_command_with_mock_analysis_provider_does_not_load_openai_compatible(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        cli,
+        "_load_openai_compatible_provider_class",
+        fail_openai_compatible_provider_load,
+    )
+
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(tmp_path / "artifacts"),
+            "--report",
+            "--analysis-provider",
+            "mock",
+        ],
+    )
+
+    assert result.exit_code == 0
 
 
 def test_detect_command_with_report_writes_mock_analysis_and_markdown_report(
@@ -258,10 +321,16 @@ def test_detect_command_with_openai_compatible_analysis_provider_uses_env(
     monkeypatch,
 ) -> None:
     FakeOpenAICompatibleLLMProvider.calls = []
+    loader_calls = []
+
+    def load_fake_provider():
+        loader_calls.append("called")
+        return FakeOpenAICompatibleLLMProvider
+
     monkeypatch.setattr(
         cli,
-        "OpenAICompatibleLLMProvider",
-        FakeOpenAICompatibleLLMProvider,
+        "_load_openai_compatible_provider_class",
+        load_fake_provider,
     )
     monkeypatch.setenv("LLM_API_KEY", "test-api-key")
     monkeypatch.setenv("LLM_MODEL", "test-model")
@@ -289,6 +358,7 @@ def test_detect_command_with_openai_compatible_analysis_provider_uses_env(
     assert result.exit_code == 0
     summary = json.loads(result.stdout)
 
+    assert loader_calls == ["called"]
     assert FakeOpenAICompatibleLLMProvider.calls == [
         {
             "api_key": "test-api-key",
@@ -315,8 +385,8 @@ def test_detect_command_with_openai_compatible_treats_unset_base_url_as_none(
     FakeOpenAICompatibleLLMProvider.calls = []
     monkeypatch.setattr(
         cli,
-        "OpenAICompatibleLLMProvider",
-        FakeOpenAICompatibleLLMProvider,
+        "_load_openai_compatible_provider_class",
+        lambda: FakeOpenAICompatibleLLMProvider,
     )
     monkeypatch.setenv("LLM_API_KEY", "test-api-key")
     monkeypatch.setenv("LLM_MODEL", "test-model")
@@ -351,8 +421,8 @@ def test_detect_command_with_openai_compatible_treats_empty_base_url_as_none(
     FakeOpenAICompatibleLLMProvider.calls = []
     monkeypatch.setattr(
         cli,
-        "OpenAICompatibleLLMProvider",
-        FakeOpenAICompatibleLLMProvider,
+        "_load_openai_compatible_provider_class",
+        lambda: FakeOpenAICompatibleLLMProvider,
     )
     monkeypatch.setenv("LLM_API_KEY", "test-api-key")
     monkeypatch.setenv("LLM_MODEL", "test-model")
@@ -384,6 +454,11 @@ def test_detect_command_with_openai_compatible_fails_without_required_env(
     tmp_path,
     monkeypatch,
 ) -> None:
+    monkeypatch.setattr(
+        cli,
+        "_load_openai_compatible_provider_class",
+        lambda: FakeOpenAICompatibleLLMProvider,
+    )
     monkeypatch.delenv("LLM_API_KEY", raising=False)
     monkeypatch.setenv("LLM_MODEL", "test-model")
 
@@ -413,6 +488,11 @@ def test_detect_command_with_openai_compatible_fails_without_model_env(
     tmp_path,
     monkeypatch,
 ) -> None:
+    monkeypatch.setattr(
+        cli,
+        "_load_openai_compatible_provider_class",
+        lambda: FakeOpenAICompatibleLLMProvider,
+    )
     monkeypatch.setenv("LLM_API_KEY", "test-api-key")
     monkeypatch.setenv("LLM_MODEL", "")
 
@@ -436,6 +516,89 @@ def test_detect_command_with_openai_compatible_fails_without_model_env(
 
     assert result.exit_code != 0
     assert "LLM_MODEL is required for openai-compatible analysis" in result.output
+
+
+def test_detect_command_with_openai_compatible_reports_missing_openai_extra(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    original_import_module = cli.importlib.import_module
+
+    def fail_import_module(name):
+        if name == "driftlens.llm.openai_compatible":
+            raise ModuleNotFoundError(
+                "No module named 'openai'",
+                name="openai",
+            )
+        return original_import_module(name)
+
+    monkeypatch.setattr(cli.importlib, "import_module", fail_import_module)
+
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(tmp_path / "artifacts"),
+            "--report",
+            "--analysis-provider",
+            "openai-compatible",
+        ],
+        terminal_width=120,
+    )
+
+    normalized_output = _normalize_cli_error_output(result.output)
+
+    assert result.exit_code != 0
+    assert (
+        "openai-compatible analysis requires the llm extra. "
+        "Install with `uv sync --extra llm`."
+    ) in normalized_output
+
+
+def test_detect_command_with_openai_compatible_reraises_unrelated_module_error(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    original_import_module = cli.importlib.import_module
+
+    def fail_import_module(name):
+        if name == "driftlens.llm.openai_compatible":
+            raise ModuleNotFoundError(
+                "No module named 'driftlens.llm.representative'",
+                name="driftlens.llm.representative",
+            )
+        return original_import_module(name)
+
+    monkeypatch.setattr(cli.importlib, "import_module", fail_import_module)
+
+    runner = CliRunner()
+    previous_json = FIXTURE_DIR / "steam_appdetails_v1.json"
+    current_json = FIXTURE_DIR / "steam_appdetails_nested_v1.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "detect",
+            str(previous_json),
+            str(current_json),
+            "--out-dir",
+            str(tmp_path / "artifacts"),
+            "--report",
+            "--analysis-provider",
+            "openai-compatible",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert isinstance(result.exception, ModuleNotFoundError)
+    assert "requires the llm extra" not in result.output
 
 
 def test_detect_command_with_openai_compatible_fails_without_report(
@@ -469,8 +632,8 @@ def test_detect_command_with_openai_compatible_surfaces_response_parse_error(
 ) -> None:
     monkeypatch.setattr(
         cli,
-        "OpenAICompatibleLLMProvider",
-        FakeFailingOpenAICompatibleLLMProvider,
+        "_load_openai_compatible_provider_class",
+        lambda: FakeFailingOpenAICompatibleLLMProvider,
     )
     monkeypatch.setenv("LLM_API_KEY", "test-api-key")
     monkeypatch.setenv("LLM_MODEL", "test-model")

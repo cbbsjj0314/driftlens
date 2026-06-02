@@ -77,8 +77,12 @@ name = "driftlens"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "openai" },
     { name = "typer" },
+]
+
+[package.optional-dependencies]
+llm = [
+    { name = "openai" },
 ]
 
 [package.dev-dependencies]
@@ -89,9 +93,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "openai", specifier = ">=2.0.0" },
+    { name = "openai", marker = "extra == 'llm'", specifier = ">=2.0.0" },
     { name = "typer", specifier = ">=0.20.0" },
 ]
+provides-extras = ["llm"]
 
 [package.metadata.requires-dev]
 dev = [
