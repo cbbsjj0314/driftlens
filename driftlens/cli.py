@@ -1,3 +1,4 @@
+import importlib
 import json
 import os
 from enum import Enum
@@ -10,7 +11,6 @@ import typer
 from driftlens.detect import run_detection
 from driftlens.llm.errors import LLMResponseError
 from driftlens.llm.mock import MockLLMProvider
-from driftlens.llm.openai_compatible import OpenAICompatibleLLMProvider
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -82,11 +82,26 @@ def _optional_env(name: str) -> str | None:
     return value
 
 
+def _load_openai_compatible_provider_class():
+    try:
+        module = importlib.import_module("driftlens.llm.openai_compatible")
+    except ModuleNotFoundError as exc:
+        if exc.name == "openai":
+            raise click.ClickException(
+                "openai-compatible analysis requires the llm extra. "
+                "Install with `uv sync --extra llm`."
+            ) from exc
+        raise
+
+    return module.OpenAICompatibleLLMProvider
+
+
 def _build_analysis_provider(provider: AnalysisProvider):
     if provider == AnalysisProvider.mock:
         return MockLLMProvider()
 
-    return OpenAICompatibleLLMProvider(
+    openai_compatible_provider_class = _load_openai_compatible_provider_class()
+    return openai_compatible_provider_class(
         api_key=_get_required_env("LLM_API_KEY"),
         model=_get_required_env("LLM_MODEL"),
         base_url=_optional_env("LLM_BASE_URL"),
