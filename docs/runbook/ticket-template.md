@@ -18,9 +18,10 @@
 
 ## Required Checks
 
-- `uv run ruff check .`
-- `uv run pytest`
-- 관련 CLI smoke 또는 docs reread
+- Default runtime/code: `./scripts/check.sh`
+- Optional `llm` provider: `uv sync --locked --extra llm` + `./scripts/check-llm.sh`
+- Package/build: `uv build`
+- Docs-only: changed docs reread
 
 ## Risk / Human Gate
 
