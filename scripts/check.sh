@@ -4,6 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 uv run ruff check .
+uv run ruff format --check .
 uv run pytest
 
 rm -rf .artifacts/ci-smoke
