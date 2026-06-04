@@ -6,9 +6,12 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
-  validate:
-    name: Ruff and pytest
+  default:
+    name: Default checks
     runs-on: ubuntu-latest
 
     steps:
@@ -28,8 +31,53 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked
 
-      - name: Run ruff
-        run: uv run ruff check .
+      - name: Run default checks
+        run: ./scripts/check.sh
 
-      - name: Run pytest
-        run: uv run pytest
+  llm-extra:
+    name: LLM extra checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+
+      - name: Install dependencies
+        run: uv sync --locked --extra llm
+
+      - name: Run LLM extra checks
+        run: ./scripts/check-llm.sh
+
+  package:
+    name: Package build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Build package
+        run: uv build
