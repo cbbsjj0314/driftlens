@@ -61,9 +61,7 @@ def _parse_response_content(content: str) -> dict:
     try:
         parsed = json.loads(content)
     except (json.JSONDecodeError, TypeError) as exc:
-        raise LLMResponseError(
-            "LLM response content must be a JSON object"
-        ) from exc
+        raise LLMResponseError("LLM response content must be a JSON object") from exc
 
     if not isinstance(parsed, dict):
         raise LLMResponseError("LLM response content must be a JSON object")
@@ -137,9 +135,7 @@ class OpenAICompatibleLLMProvider:
             "change_count": change_count,
             "severity_counts": counts,
             "overall_severity": highest_severity,
-            "operator_summary": _string_or_empty(
-                llm_analysis.get("operator_summary")
-            ),
+            "operator_summary": _string_or_empty(llm_analysis.get("operator_summary")),
             "representative_changes": representative_changes(classified_changes),
             "impacts": _list_or_empty(llm_analysis.get("impacts")),
             "normalization_suggestions": _list_or_empty(

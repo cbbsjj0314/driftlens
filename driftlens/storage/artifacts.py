@@ -9,7 +9,9 @@ def _resolve_artifact_path(base_dir: Path, relative_path: str) -> Path:
         raise ValueError(f"Artifact path must be relative: {relative_path}")
 
     if ".." in artifact_path.parts:
-        raise ValueError(f"Artifact path cannot traverse parent directories: {relative_path}")
+        raise ValueError(
+            f"Artifact path cannot traverse parent directories: {relative_path}"
+        )
 
     resolved_base_dir = base_dir.resolve()
     resolved_artifact_path = (resolved_base_dir / artifact_path).resolve()

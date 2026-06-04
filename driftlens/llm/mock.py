@@ -40,23 +40,31 @@ def _normalization_suggestions(change_types: list[ChangeType]) -> list[str]:
             "Check parser and normalization logic for removed fields or changed types."
         )
     if "field_added" in change_types:
-        suggestions.append("Decide whether new fields need explicit normalization mapping.")
+        suggestions.append(
+            "Decide whether new fields need explicit normalization mapping."
+        )
     if "nullability_changed" in change_types:
         suggestions.append("Check null handling before applying NOT NULL constraints.")
 
     return suggestions
 
 
-def _test_case_suggestions(change_count: int, change_types: list[ChangeType]) -> list[str]:
+def _test_case_suggestions(
+    change_count: int, change_types: list[ChangeType]
+) -> list[str]:
     if change_count == 0:
-        return ["Keep a no-drift regression test for unchanged previous/current fixtures."]
+        return [
+            "Keep a no-drift regression test for unchanged previous/current fixtures."
+        ]
 
     suggestions = [
         "Add a previous/current fixture regression test for the classified diff."
     ]
 
     if change_types:
-        suggestions.append("Add changed field coverage for parser and normalization paths.")
+        suggestions.append(
+            "Add changed field coverage for parser and normalization paths."
+        )
 
     return suggestions
 

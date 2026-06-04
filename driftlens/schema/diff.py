@@ -1,4 +1,9 @@
-from driftlens.schema.types import ObservedSchema, SchemaChange, SchemaField, SchemaValueType
+from driftlens.schema.types import (
+    ObservedSchema,
+    SchemaChange,
+    SchemaField,
+    SchemaValueType,
+)
 
 
 def _fields_by_path(schema: ObservedSchema) -> dict[str, SchemaField]:
@@ -9,7 +14,9 @@ def _value_types(field: SchemaField) -> list[SchemaValueType]:
     return [field_type for field_type in field["types"] if field_type != "null"]
 
 
-def diff_schemas(previous: ObservedSchema, current: ObservedSchema) -> list[SchemaChange]:
+def diff_schemas(
+    previous: ObservedSchema, current: ObservedSchema
+) -> list[SchemaChange]:
     """Return deterministic schema changes between two observed schemas."""
     previous_fields = _fields_by_path(previous)
     current_fields = _fields_by_path(current)

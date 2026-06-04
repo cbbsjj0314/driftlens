@@ -35,10 +35,7 @@ def test_write_json_artifact_uses_deterministic_json_formatting(tmp_path) -> Non
     artifact_path = write_json_artifact(tmp_path, "samples/raw.json", data)
 
     assert artifact_path.read_text(encoding="utf-8") == (
-        "{\n"
-        '  "appid": 123,\n'
-        '  "name": "예제 게임"\n'
-        "}\n"
+        '{\n  "appid": 123,\n  "name": "예제 게임"\n}\n'
     )
 
 

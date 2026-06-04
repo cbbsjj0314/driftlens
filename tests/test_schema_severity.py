@@ -178,29 +178,37 @@ def test_classify_changes_from_generic_product_catalog_fixtures() -> None:
     changes = diff_schemas(previous_schema, current_schema)
     classified_changes = classify_changes(changes)
     changes_by_path_and_type = {
-        (change["path"], change["change_type"]): change
-        for change in classified_changes
+        (change["path"], change["change_type"]): change for change in classified_changes
     }
 
     assert all("severity" not in change for change in changes)
-    assert changes_by_path_and_type[
-        ("minimum_age", "type_changed")
-    ]["severity"] == "high"
-    assert changes_by_path_and_type[
-        ("pricing", "field_removed")
-    ]["severity"] == "high"
-    assert changes_by_path_and_type[
-        ("review_summary.score", "field_removed")
-    ]["severity"] == "high"
-    assert changes_by_path_and_type[
-        ("review_summary.source_url", "field_removed")
-    ]["severity"] == "high"
-    assert changes_by_path_and_type[
-        ("metadata.source", "field_removed")
-    ]["severity"] == "high"
-    assert changes_by_path_and_type[
-        ("regional_ratings.agency_a.rating", "field_added")
-    ]["severity"] == "low"
-    assert changes_by_path_and_type[
-        ("regional_ratings.agency_b.rating", "field_added")
-    ]["severity"] == "low"
+    assert (
+        changes_by_path_and_type[("minimum_age", "type_changed")]["severity"] == "high"
+    )
+    assert changes_by_path_and_type[("pricing", "field_removed")]["severity"] == "high"
+    assert (
+        changes_by_path_and_type[("review_summary.score", "field_removed")]["severity"]
+        == "high"
+    )
+    assert (
+        changes_by_path_and_type[("review_summary.source_url", "field_removed")][
+            "severity"
+        ]
+        == "high"
+    )
+    assert (
+        changes_by_path_and_type[("metadata.source", "field_removed")]["severity"]
+        == "high"
+    )
+    assert (
+        changes_by_path_and_type[("regional_ratings.agency_a.rating", "field_added")][
+            "severity"
+        ]
+        == "low"
+    )
+    assert (
+        changes_by_path_and_type[("regional_ratings.agency_b.rating", "field_added")][
+            "severity"
+        ]
+        == "low"
+    )

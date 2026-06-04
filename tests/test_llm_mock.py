@@ -178,8 +178,9 @@ def test_mock_llm_provider_suggests_parser_normalization_and_mapping_review() ->
         ]
     )
 
-    assert "Parser, normalization, and table mapping assumptions should be reviewed." in (
-        analysis["impacts"]
+    assert (
+        "Parser, normalization, and table mapping assumptions should be reviewed."
+        in (analysis["impacts"])
     )
     assert (
         "Check parser and normalization logic for removed fields or changed types."
@@ -200,11 +201,13 @@ def test_mock_llm_provider_suggests_new_field_mapping_review() -> None:
         ]
     )
 
-    assert "New field mapping should be reviewed before downstream use." in (
-        analysis["impacts"]
+    assert (
+        "New field mapping should be reviewed before downstream use."
+        in (analysis["impacts"])
     )
-    assert "Decide whether new fields need explicit normalization mapping." in (
-        analysis["normalization_suggestions"]
+    assert (
+        "Decide whether new fields need explicit normalization mapping."
+        in (analysis["normalization_suggestions"])
     )
 
 
@@ -221,11 +224,13 @@ def test_mock_llm_provider_suggests_null_handling_review() -> None:
         ]
     )
 
-    assert "Null handling and NOT NULL constraints should be reviewed." in (
-        analysis["impacts"]
+    assert (
+        "Null handling and NOT NULL constraints should be reviewed."
+        in (analysis["impacts"])
     )
-    assert "Check null handling before applying NOT NULL constraints." in (
-        analysis["normalization_suggestions"]
+    assert (
+        "Check null handling before applying NOT NULL constraints."
+        in (analysis["normalization_suggestions"])
     )
 
 
@@ -252,18 +257,23 @@ def test_mock_llm_provider_returns_same_output_for_same_input() -> None:
 
     assert first_analysis == second_analysis
     assert first_analysis["impacts"] == second_analysis["impacts"]
-    assert first_analysis["normalization_suggestions"] == (
-        second_analysis["normalization_suggestions"]
+    assert (
+        first_analysis["normalization_suggestions"]
+        == (second_analysis["normalization_suggestions"])
     )
-    assert first_analysis["test_case_suggestions"] == (
-        second_analysis["test_case_suggestions"]
+    assert (
+        first_analysis["test_case_suggestions"]
+        == (second_analysis["test_case_suggestions"])
     )
-    assert first_analysis["representative_changes"] == (
-        second_analysis["representative_changes"]
+    assert (
+        first_analysis["representative_changes"]
+        == (second_analysis["representative_changes"])
     )
 
 
-def test_mock_llm_provider_returns_representative_changes_with_required_fields() -> None:
+def test_mock_llm_provider_returns_representative_changes_with_required_fields() -> (
+    None
+):
     analysis = analyze(
         [
             {

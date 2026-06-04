@@ -661,8 +661,7 @@ def test_detect_command_with_openai_compatible_surfaces_response_parse_error(
 
     assert result.exit_code != 0
     assert (
-        "OpenAI-compatible analysis failed: "
-        "LLM response content must be a JSON object"
+        "OpenAI-compatible analysis failed: LLM response content must be a JSON object"
     ) in normalized_output
 
 

@@ -99,9 +99,7 @@ def test_run_detection_with_provider_writes_analysis_and_markdown_report(
     assert (out_dir / "reports/schema_drift.md").exists()
 
     analysis = read_json_artifact(out_dir / "llm/analysis.json")
-    markdown_report = (out_dir / "reports/schema_drift.md").read_text(
-        encoding="utf-8"
-    )
+    markdown_report = (out_dir / "reports/schema_drift.md").read_text(encoding="utf-8")
 
     assert analysis["provider"] == "fake"
     assert "# DriftLens Schema Drift Report" in markdown_report
@@ -132,10 +130,7 @@ def test_run_detection_with_sanitized_steam_appdetails_demo_fixtures(
     } <= changes_by_path.keys()
     assert changes_by_path["required_age"]["change_type"] == "type_changed"
     assert changes_by_path["price_overview"]["change_type"] == "field_removed"
-    assert (
-        changes_by_path["price_overview.currency"]["change_type"]
-        == "field_removed"
-    )
+    assert changes_by_path["price_overview.currency"]["change_type"] == "field_removed"
     assert changes_by_path["ratings.agcom.rating"]["change_type"] == "field_added"
 
     assert {
