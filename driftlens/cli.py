@@ -45,9 +45,7 @@ def _load_json_object(path: Path) -> dict:
     try:
         raw_json = path.read_text(encoding="utf-8")
     except OSError as exc:
-        raise click.ClickException(
-            f"Failed to read JSON file '{path}': {exc}"
-        ) from exc
+        raise click.ClickException(f"Failed to read JSON file '{path}': {exc}") from exc
 
     try:
         data = json.loads(raw_json)
@@ -67,9 +65,7 @@ def _load_json_object(path: Path) -> dict:
 def _get_required_env(name: str) -> str:
     value = os.environ.get(name)
     if value is None or value == "":
-        raise click.ClickException(
-            f"{name} is required for openai-compatible analysis"
-        )
+        raise click.ClickException(f"{name} is required for openai-compatible analysis")
 
     return value
 

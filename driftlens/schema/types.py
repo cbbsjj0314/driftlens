@@ -69,10 +69,7 @@ class NullabilityChangedChange(TypedDict):
 
 
 type SchemaChange = (
-    FieldAddedChange
-    | FieldRemovedChange
-    | TypeChangedChange
-    | NullabilityChangedChange
+    FieldAddedChange | FieldRemovedChange | TypeChangedChange | NullabilityChangedChange
 )
 
 

@@ -180,7 +180,9 @@ def test_render_markdown_report_uses_fallbacks_for_empty_summary_and_lists() -> 
     assert "- No test case suggestions provided." in report
 
 
-def test_render_markdown_report_uses_representative_changes_fallback_when_missing() -> None:
+def test_render_markdown_report_uses_representative_changes_fallback_when_missing() -> (
+    None
+):
     input_analysis = analysis()
     del input_analysis["representative_changes"]
 

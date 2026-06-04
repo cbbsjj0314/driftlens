@@ -276,7 +276,9 @@ def test_openai_compatible_provider_rejects_non_object_json_response(
         analyze([], content)
 
 
-def test_openai_compatible_provider_falls_back_for_missing_or_wrong_field_types() -> None:
+def test_openai_compatible_provider_falls_back_for_missing_or_wrong_field_types() -> (
+    None
+):
     analysis = analyze(
         [],
         json.dumps(
