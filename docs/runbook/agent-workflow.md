@@ -105,17 +105,25 @@ Docs-only 변경:
 - 중복, 오래된 표현, 과한 scope 약속이 없는지 확인한다.
 - `AGENTS.md`와 runbook의 역할 중복이 과하지 않은지 확인한다.
 - public docs에 secret, raw third-party payload, private/local path, provider account detail, private runtime data가 없는지 확인한다.
-- runtime 파일을 건드리지 않았다면 `uv run pytest`와 `uv run ruff check .`는 생략할 수 있다.
+- runtime, script, workflow 파일을 건드리지 않았다면 runtime validation은 생략할 수 있다.
 
 Runtime/code 변경:
 
-- `uv run ruff check .`
-- `uv run pytest`
+- `./scripts/check.sh`
+
+Optional `llm` provider 변경:
+
+- `uv sync --locked --extra llm`
+- `./scripts/check-llm.sh`
+
+Package/build 변경:
+
+- `uv build`
 
 CLI behavior를 건드린 경우:
 
-- 관련 `uv run driftlens ... --help`를 확인한다.
-- 필요하면 좁은 smoke command로 실제 입력과 output 생성을 확인한다.
+- `./scripts/check.sh`에는 fixture-based CLI smoke가 포함되어 있다.
+- 변경한 CLI behavior가 default smoke로 덮이지 않을 때만 focused CLI smoke를 추가한다.
 
 Validation을 실행할 수 없으면 완료 보고에 다음을 남긴다.
 

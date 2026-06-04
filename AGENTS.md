@@ -61,10 +61,18 @@ Use `uv`.
 
 For runtime/code changes, run:
 
-* `uv run ruff check .`
-* `uv run pytest`
+* `./scripts/check.sh`
 
-For CLI behavior changes, also run the relevant narrow `uv run driftlens ... --help` or smoke command.
+For optional `llm` provider changes, run:
+
+* `uv sync --locked --extra llm`
+* `./scripts/check-llm.sh`
+
+For package/build related changes, run:
+
+* `uv build`
+
+For CLI behavior changes, `./scripts/check.sh` includes a narrow fixture-based smoke. Add a focused CLI smoke only when the changed behavior is not covered by the default smoke.
 
 For docs-only changes, runtime validation may be skipped. Instead, reread the changed docs and check for outdated claims, duplicated guidance, overbroad scope promises, and public exposure of secrets, raw payloads, private paths, or provider account details.
 

@@ -104,17 +104,23 @@ schema extraction, schema diff, severity classification, artifact path, summary.
 <!--
 기본은 `command: result` 한 줄 형식으로 쓴다.
 명령 목록과 결과를 따로 반복하지 않는다.
-`pytest`는 가능하면 passed count / time까지 적는다.
+모든 PR이 모든 command를 실행해야 하는 것은 아니다.
+default runtime/code 변경은 `./scripts/check.sh`를 우선 적는다.
+optional `llm` provider 변경은 `uv sync --locked --extra llm`와 `./scripts/check-llm.sh`를 적는다.
+package/build 변경은 `uv build`를 적는다.
 docs-only 또는 template-only PR이면 runtime test를 생략할 수 있다.
 그 경우 `- Not run (docs-only change)` 또는 `- Not run (docs/template-only change)`라고 적는다.
-CLI behavior를 바꿨을 때만 관련 `uv run driftlens ... --help` 또는 smoke command를 추가한다.
-Required Checks / CI는 PR에서 확인 가능한 결과가 있을 때 적는다.
+대신 changed docs reread 결과를 적는다.
+CLI behavior를 바꿨고 `./scripts/check.sh`의 default smoke로 덮이지 않을 때만 focused CLI smoke를 추가한다.
+Required Checks / CI는 PR에서 확인 가능한 결과가 있을 때 job 이름과 함께 적는다.
 -->
 
-- `uv run ruff check .`: result
-- `uv run pytest`: result
-- relevant CLI smoke: result
-- Required Checks / CI: result
+- `./scripts/check.sh`: result
+- `uv sync --locked --extra llm`: result, when applicable
+- `./scripts/check-llm.sh`: result, when applicable
+- `uv build`: result, when applicable
+- changed docs reread: result, when applicable
+- Required Checks / CI: passed (`Default checks`, `LLM extra checks`, `Package build`)
 
 ---
 
