@@ -3,6 +3,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Fail before `uv run` can update a stale lockfile.
+uv lock --check
 uv run ruff check .
 uv run ruff format --check .
 uv run pytest
