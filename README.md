@@ -43,27 +43,49 @@ LLM은 그 결과를 바탕으로 운영자 관점에서 이해하기 쉬운 설
 
 ## 사용 방법
 
+**기본 환경:**
+
+기본 deterministic CLI는 `llm` extra 없이 사용할 수 있다.
+
+```bash
+uv sync
+```
+
 **기본 실행:**
 
 ```bash
 uv run driftlens detect previous.json current.json --out-dir .artifacts/demo
 ```
 
-LLM API 없이 report 생성 흐름만 확인하려면 `mock` provider를 사용할 수 있다.
+LLM API 없이 report 생성 흐름만 확인하려면 `mock` provider를 사용할 수 있다. `mock` provider는 `llm` extra가 필요하지 않다.
 
 ```bash
-uv run driftlens detect previous.json current.json --out-dir .artifacts/demo --report --analysis-provider mock
+uv run driftlens detect previous.json current.json \
+  --out-dir .artifacts/demo \
+  --report \
+  --analysis-provider mock
 ```
 
-`openai-compatible` provider로 report를 생성하려면 아래 환경 변수가 필요하다.
+`openai-compatible` provider로 report를 생성하려면 먼저 optional dependency를 설치해야 한다.
+
+```bash
+uv sync --extra llm
+```
+
+그다음 아래 환경 변수가 필요하다.
 
 * `LLM_API_KEY`
 * `LLM_MODEL`
 * `LLM_BASE_URL` (선택 사항)
 
 ```bash
-uv run driftlens detect previous.json current.json --out-dir .artifacts/demo --report --analysis-provider openai-compatible
+uv run driftlens detect previous.json current.json \
+  --out-dir .artifacts/demo \
+  --report \
+  --analysis-provider openai-compatible
 ```
+
+`openai-compatible`은 OpenAI Chat Completions request/response shape와 호환되는 API를 뜻하며, 공식 OpenAI API로만 한정되지 않는다. 다만 현재 구현은 `openai` Python SDK를 사용하므로 호환 endpoint를 쓰더라도 `llm` extra가 필요하다.
 
 `--report` 사용 시 `--analysis-provider` 옵션으로 원하는 provider를 선택한다.
 
