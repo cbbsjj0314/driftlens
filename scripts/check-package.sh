@@ -51,7 +51,11 @@ if ! uv venv --python 3.12 "$llm_venv" >"$temp_root/llm-venv.log" 2>&1; then
   exit 1
 fi
 
-"$default_venv/bin/python" - "$repo_root/pyproject.toml" "$wheel" "$sdist" <<'PY'
+"$default_venv/bin/python" - \
+  "$repo_root/pyproject.toml" \
+  "$repo_root/LICENSE" \
+  "$wheel" \
+  "$sdist" <<'PY'
 import configparser
 import email.parser
 import re
@@ -62,7 +66,7 @@ import zipfile
 from pathlib import PurePosixPath
 
 
-pyproject_path, wheel_path, sdist_path = sys.argv[1:]
+pyproject_path, license_path, wheel_path, sdist_path = sys.argv[1:]
 
 
 def canonical_name(value: str) -> str:
@@ -127,6 +131,13 @@ def validate_archive_members(label: str, members: list[str]) -> None:
 
 with open(pyproject_path, "rb") as pyproject_file:
     project = tomllib.load(pyproject_file)["project"]
+with open(license_path, "rb") as license_file:
+    license_content = license_file.read()
+
+if project.get("license") != "Apache-2.0":
+    raise SystemExit("pyproject.toml must declare Apache-2.0.")
+if project.get("license-files") != ["LICENSE"]:
+    raise SystemExit("pyproject.toml must include only the repo-root LICENSE file.")
 
 with zipfile.ZipFile(wheel_path) as wheel_archive:
     wheel_members = wheel_archive.namelist()
@@ -148,10 +159,46 @@ with zipfile.ZipFile(wheel_path) as wheel_archive:
     )
     entry_points_text = wheel_archive.read(entry_point_members[0]).decode("utf-8")
 
+    license_expressions = metadata.get_all("License-Expression", failobj=[])
+    if license_expressions != ["Apache-2.0"]:
+        raise SystemExit("Wheel metadata must declare only Apache-2.0.")
+
+    license_files = metadata.get_all("License-File", failobj=[])
+    if license_files != ["LICENSE"]:
+        raise SystemExit("Wheel metadata must reference only LICENSE.")
+
+    dist_info_dir = PurePosixPath(metadata_members[0]).parent
+    expected_wheel_license = str(dist_info_dir / "licenses" / "LICENSE")
+    if expected_wheel_license not in wheel_members:
+        raise SystemExit("Wheel does not contain the LICENSE referenced by metadata.")
+    if wheel_archive.read(expected_wheel_license) != license_content:
+        raise SystemExit("Wheel LICENSE content does not match the repository LICENSE.")
+
 with tarfile.open(sdist_path, mode="r:gz") as sdist_archive:
+    sdist_members = sdist_archive.getmembers()
     validate_archive_members(
-        "Source distribution", [member.name for member in sdist_archive.getmembers()]
+        "Source distribution", [member.name for member in sdist_members]
     )
+    top_level_directories = {
+        PurePosixPath(member.name).parts[0]
+        for member in sdist_members
+        if PurePosixPath(member.name).parts
+    }
+    if len(top_level_directories) != 1:
+        raise SystemExit("Source distribution must contain one top-level directory.")
+    sdist_root = top_level_directories.pop()
+    expected_sdist_license = f"{sdist_root}/LICENSE"
+    try:
+        sdist_license = sdist_archive.getmember(expected_sdist_license)
+    except KeyError as exc:
+        raise SystemExit(
+            "Source distribution does not contain LICENSE at its package root."
+        ) from exc
+    extracted_license = sdist_archive.extractfile(sdist_license)
+    if extracted_license is None or extracted_license.read() != license_content:
+        raise SystemExit(
+            "Source distribution LICENSE content does not match the repository LICENSE."
+        )
 
 if canonical_name(metadata["Name"] or "") != canonical_name(project["name"]):
     raise SystemExit("Wheel package name does not match pyproject.toml.")
