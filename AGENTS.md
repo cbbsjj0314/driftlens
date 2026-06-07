@@ -70,7 +70,7 @@ For optional `llm` provider changes, run:
 
 For package/build related changes, run:
 
-* `uv build`
+* `./scripts/check-package.sh`
 
 For CLI behavior changes, `./scripts/check.sh` includes a narrow fixture-based smoke. Add a focused CLI smoke only when the changed behavior is not covered by the default smoke.
 

@@ -118,7 +118,7 @@ Optional `llm` provider 변경:
 
 Package/build 변경:
 
-- `uv build`
+- `./scripts/check-package.sh`
 
 CLI behavior를 건드린 경우:
 
