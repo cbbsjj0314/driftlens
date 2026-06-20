@@ -50,6 +50,7 @@ DriftLens is not an API collector, scheduler, alerting system, Steam semantic cl
 
 * Write durable human-facing docs in Korean by default.
 * Agent-facing instruction files may use English when useful for tool compatibility.
+* For detailed documentation style, translation, and inventory classification guidance, follow `docs/runbook/documentation-style.md`.
 * Do not translate code-facing identifiers such as `endpoint`, `route`, `loader`, `table`, `view`, `CLI`, command names, module names, function names, config keys, or filenames.
 * Keep `docs/local/` as local-only working material, not a public changelog.
 * `docs/local/NEXT.md` is a local execution board. Keep it short and do not turn it into a detailed progress log.
