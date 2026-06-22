@@ -21,7 +21,7 @@
 - Default runtime/code: `./scripts/check.sh`
 - Optional `llm` provider: `uv sync --locked --extra llm` + `./scripts/check-llm.sh`
 - Package/build: `./scripts/check-package.sh`
-- Docs-only: changed docs reread
+- Docs-only: `git diff --check` + changed docs reread
 
 ## Risk / Human Gate
 

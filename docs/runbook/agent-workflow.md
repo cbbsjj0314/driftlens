@@ -101,6 +101,7 @@ Human Gate가 필요한 변경은 PR의 `Risk / Human Gate`에 이유와 확인 
 
 Docs-only 변경:
 
+- `git diff --check`를 실행한다.
 - 변경한 문서를 직접 다시 읽는다.
 - 중복, 오래된 표현, 과한 scope 약속이 없는지 확인한다.
 - `AGENTS.md`와 runbook의 역할 중복이 과하지 않은지 확인한다.

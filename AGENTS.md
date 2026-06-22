@@ -75,7 +75,7 @@ For package/build related changes, run:
 
 For CLI behavior changes, `./scripts/check.sh` includes a narrow fixture-based smoke. Add a focused CLI smoke only when the changed behavior is not covered by the default smoke.
 
-For docs-only changes, runtime validation may be skipped. Instead, reread the changed docs and check for outdated claims, duplicated guidance, overbroad scope promises, and public exposure of secrets, raw payloads, private paths, or provider account details.
+For docs-only changes, runtime validation may be skipped. Run `git diff --check`, then reread the changed docs and check for outdated claims, duplicated guidance, overbroad scope promises, and public exposure of secrets, raw payloads, private paths, or provider account details.
 
 If validation cannot run, report the command attempted, failure reason, and what was still verified.
 
